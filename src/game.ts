@@ -15,7 +15,9 @@ export function createRound(lesson: Lesson): Round {
   while (queue.length < 8)
     queue.push(...shuffle(lesson.notes).slice(0, 8 - queue.length));
   return {
+    mode: "lesson",
     lessonId: lesson.id,
+    maxFret: lesson.maxFret,
     queue,
     index: 0,
     status: "asking",
@@ -56,9 +58,9 @@ export function answer(
   if (
     round.status !== "asking" ||
     !note ||
-    !lesson ||
+    (round.mode === "lesson" && !lesson) ||
     position.fret < 0 ||
-    position.fret > lesson.maxFret
+    position.fret > round.maxFret
   )
     return { round, progress };
   if (noteAt(position).midi !== note.midi) {
@@ -99,7 +101,7 @@ export function answer(
       : (progress.mastery[note.id] ?? 0),
   };
   const index = LESSONS.findIndex((item) => item.id === round.lessonId);
-  const unlocked = lesson.notes.every((item) => (mastery[item.id] ?? 0) >= 3)
+  const unlocked = lesson && round.mode === "lesson" && lesson.notes.every((item) => (mastery[item.id] ?? 0) >= 3)
     ? Math.max(progress.unlocked, Math.min(LESSONS.length - 1, index + 1))
     : progress.unlocked;
   return {

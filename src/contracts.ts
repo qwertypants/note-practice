@@ -23,8 +23,11 @@ export interface Progress {
   unlocked: number;
   rounds: number;
 }
-export interface Round {
-  lessonId: string;
+export type Round = (
+  | { mode: "lesson"; lessonId: string }
+  | { mode: "review"; lessonId: null }
+) & {
+  maxFret: number;
   queue: Note[];
   index: number;
   status: "asking" | "correct" | "complete";
