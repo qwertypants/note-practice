@@ -15,7 +15,9 @@ export function createRound(lesson: Lesson): Round {
   while (queue.length < 8)
     queue.push(...shuffle(lesson.notes).slice(0, 8 - queue.length));
   return {
+    mode: "lesson",
     lessonId: lesson.id,
+    maxFret: lesson.maxFret,
     queue,
     index: 0,
     status: "asking",
@@ -26,9 +28,6 @@ export function createRound(lesson: Lesson): Round {
     cleanAnswers: 0,
     feedback: "",
   };
-}
-export function hintsVisible(note: Note, progress: Progress): boolean {
-  return (progress.mastery[note.id] ?? 0) < 3;
 }
 export function help(
   round: Round,
@@ -52,13 +51,16 @@ export function answer(
   progress: Progress,
 ): { round: Round; progress: Progress } {
   const note = round.queue[round.index];
-  const lesson = LESSONS.find((item) => item.id === round.lessonId);
+  const lesson =
+    round.mode === "lesson"
+      ? LESSONS.find((item) => item.id === round.lessonId)
+      : undefined;
   if (
     round.status !== "asking" ||
     !note ||
-    !lesson ||
+    (round.mode === "lesson" && !lesson) ||
     position.fret < 0 ||
-    position.fret > lesson.maxFret
+    position.fret > round.maxFret
   )
     return { round, progress };
   if (noteAt(position).midi !== note.midi) {
@@ -84,7 +86,7 @@ export function answer(
         streak: 0,
         feedback:
           mistakes >= 2
-            ? `Find ${note.name} — its label is showing on the neck.`
+            ? "Need a hand? Tap A little help to reveal the note."
             : "Try another position. You can take your time.",
       },
       progress: { ...progress, mastery: { ...progress.mastery, [note.id]: 0 } },
@@ -98,8 +100,11 @@ export function answer(
       ? Math.min(3, (progress.mastery[note.id] ?? 0) + 1)
       : (progress.mastery[note.id] ?? 0),
   };
-  const index = LESSONS.findIndex((item) => item.id === round.lessonId);
-  const unlocked = lesson.notes.every((item) => (mastery[item.id] ?? 0) >= 3)
+  const index =
+    round.mode === "lesson"
+      ? LESSONS.findIndex((item) => item.id === round.lessonId)
+      : -1;
+  const unlocked = lesson && round.mode === "lesson" && lesson.notes.every((item) => (mastery[item.id] ?? 0) >= 3)
     ? Math.max(progress.unlocked, Math.min(LESSONS.length - 1, index + 1))
     : progress.unlocked;
   return {

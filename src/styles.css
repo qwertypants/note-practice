@@ -936,3 +936,14 @@ footer span {
     transform: none;
   }
 }
+
+.topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.audio-status { font-size: 0.85rem; min-height: 1.2em; }
+.hear-note { margin-top: 8px; }
+.hear-note:disabled { opacity: 0.55; cursor: default; }
+.review-entry { margin-top: 20px; }
+.review-entry p { font-size: 0.85rem; line-height: 1.5; }
+@media (max-width: 480px) {
+  .topbar-actions { gap: 4px; }
+  .topbar-actions .quiet-button { font-size: 0.75rem; }
+}

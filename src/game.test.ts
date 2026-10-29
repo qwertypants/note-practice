@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { answer, createRound, help, hintsVisible, next } from "./game";
+import { answer, createRound, help, next } from "./game";
 import { LESSONS } from "./lessons";
 import { noteAt, positionsFor } from "./music";
 import { emptyProgress } from "./progress";
+import { createReviewRound } from "./review";
 import type { Round } from "./contracts";
 const lesson = LESSONS[0];
 if (!lesson) throw new Error("Missing introductory lesson");
@@ -29,9 +30,7 @@ describe("practice rounds", () => {
   });
   it("restores hints and resets mastery on Help, without awarding assisted mastery", () => {
     const progress = { ...emptyProgress(), mastery: { E4: 3 } };
-    expect(hintsVisible(e, progress)).toBe(false);
     const helped = help(round(), progress);
-    expect(hintsVisible(e, helped.progress)).toBe(true);
     expect(helped.round.assisted).toBe(true);
     const correct = answer(
       helped.round,
@@ -41,7 +40,7 @@ describe("practice rounds", () => {
     expect(correct.progress.mastery.E4).toBe(0);
     expect(correct.round.cleanAnswers).toBe(0);
   });
-  it("keeps a wrong question active, reveals after two misses, and recovers on next", () => {
+  it("keeps a wrong question active, offers help after two misses, and recovers on next", () => {
     let state = answer(
       round(),
       { string: 6, fret: 0 },
@@ -52,7 +51,7 @@ describe("practice rounds", () => {
     expect(state.round.mistakes).toBe(1);
     expect(state.progress.mastery.E4).toBe(0);
     state = answer(state.round, { string: 6, fret: 0 }, state.progress);
-    expect(state.round.feedback).toContain("E");
+    expect(state.round.feedback).toBe("Need a hand? Tap A little help to reveal the note.");
     state = answer(state.round, { string: 1, fret: 0 }, state.progress);
     expect(state.round.status).toBe("correct");
     expect(state.progress.mastery.E4).toBe(0);
@@ -87,16 +86,13 @@ describe("practice rounds", () => {
     expect(state.round.queue[1]?.id).toBe("B3");
     expect(state.round.queue).toHaveLength(8);
   });
-  it("fades hints after three clean finds and restores them after a mistake", () => {
+  it("tracks three clean finds and resets mastery after a mistake", () => {
     let state = help(round(), { ...emptyProgress(), mastery: { E4: 3 } });
-    expect(hintsVisible(e, state.progress)).toBe(true);
     for (let success = 1; success <= 3; success++) {
       state = answer(round(), { string: 1, fret: 0 }, state.progress);
       expect(state.progress.mastery.E4).toBe(success);
-      expect(hintsVisible(e, state.progress)).toBe(success < 3);
     }
     state = answer(round(), { string: 2, fret: 0 }, state.progress);
-    expect(hintsVisible(e, state.progress)).toBe(true);
     expect(state.progress.mastery.E4).toBe(0);
     expect(state.round.feedback).toBe(
       "Try another position. You can take your time.",
@@ -115,5 +111,61 @@ describe("practice rounds", () => {
     expect(state.round.status).toBe("complete");
     expect(state.progress.rounds).toBe(1);
     expect(next(state.round, state.progress)).toEqual(state);
+  });
+  it("accepts an alternate same-pitch position within review bounds", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const initial = createReviewRound(progress);
+    const review: Round = { ...initial, maxFret: 5 };
+    const outside = answer(review, { string: 3, fret: 9 }, progress);
+    expect(outside).toEqual({ round: review, progress });
+    const answered = answer(review, { string: 2, fret: 5 }, progress);
+    expect(answered.round.status).toBe("correct");
+    expect(answered.progress.mastery.E4).toBe(3);
+    expect(answered.round.cleanAnswers).toBe(1);
+    expect(answer(answered.round, { string: 2, fret: 5 }, answered.progress)).toEqual(answered);
+  });
+
+  it("updates mastery and round totals without unlocking or mutating input progress", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const original = structuredClone(progress);
+    let state: ReturnType<typeof answer> = { round: createReviewRound(progress), progress };
+    for (let question = 0; question < 8; question++) {
+      state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+      expect(state.round.status).toBe("correct");
+      expect(state.progress.unlocked).toBe(0);
+      state = next(state.round, state.progress);
+    }
+    expect(state.progress.mastery).toEqual({ E4: 3, B3: 3 });
+    expect(state.round.status).toBe("complete");
+    expect(state.round.cleanAnswers).toBe(8);
+    expect(state.progress.rounds).toBe(1);
+    expect(next(state.round, state.progress)).toEqual(state);
+    expect(progress).toEqual(original);
+  });
+
+  it("reuses review mistakes, help, and question resets without awarding assisted mastery", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const original = structuredClone(progress);
+    let state: ReturnType<typeof answer> = { round: createReviewRound(progress), progress };
+    state = answer(state.round, { string: 6, fret: 0 }, state.progress);
+    expect(state.round.status).toBe("asking");
+    expect(state.round.mistakes).toBe(1);
+    expect(state.round.assisted).toBe(true);
+    expect(state.progress.mastery.E4).toBe(0);
+    state = answer(state.round, { string: 6, fret: 0 }, state.progress);
+    expect(state.round.feedback).toBe("Need a hand? Tap A little help to reveal the note.");
+    state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+    expect(state.round.status).toBe("correct");
+    expect(state.round.cleanAnswers).toBe(0);
+    expect(state.progress.mastery.E4).toBe(0);
+    state = next(state.round, state.progress);
+    expect(state.round).toMatchObject({ index: 1, assisted: false, mistakes: 0, status: "asking" });
+    state = help(state.round, state.progress);
+    expect(state.round.assisted).toBe(true);
+    state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+    expect(state.round.cleanAnswers).toBe(0);
+    expect(state.progress.mastery.E4).toBe(0);
+    expect(state.progress.unlocked).toBe(0);
+    expect(progress).toEqual(original);
   });
 });
