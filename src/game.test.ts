@@ -3,6 +3,7 @@ import { answer, createRound, help, hintsVisible, next } from "./game";
 import { LESSONS } from "./lessons";
 import { noteAt, positionsFor } from "./music";
 import { emptyProgress } from "./progress";
+import { createReviewRound } from "./review";
 import type { Round } from "./contracts";
 const lesson = LESSONS[0];
 if (!lesson) throw new Error("Missing introductory lesson");
@@ -115,5 +116,61 @@ describe("practice rounds", () => {
     expect(state.round.status).toBe("complete");
     expect(state.progress.rounds).toBe(1);
     expect(next(state.round, state.progress)).toEqual(state);
+  });
+  it("accepts an alternate same-pitch position within review bounds", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const initial = createReviewRound(progress);
+    const review: Round = { ...initial, maxFret: 5 };
+    const outside = answer(review, { string: 3, fret: 9 }, progress);
+    expect(outside).toEqual({ round: review, progress });
+    const answered = answer(review, { string: 2, fret: 5 }, progress);
+    expect(answered.round.status).toBe("correct");
+    expect(answered.progress.mastery.E4).toBe(3);
+    expect(answered.round.cleanAnswers).toBe(1);
+    expect(answer(answered.round, { string: 2, fret: 5 }, answered.progress)).toEqual(answered);
+  });
+
+  it("updates mastery and round totals without unlocking or mutating input progress", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const original = structuredClone(progress);
+    let state: ReturnType<typeof answer> = { round: createReviewRound(progress), progress };
+    for (let question = 0; question < 8; question++) {
+      state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+      expect(state.round.status).toBe("correct");
+      expect(state.progress.unlocked).toBe(0);
+      state = next(state.round, state.progress);
+    }
+    expect(state.progress.mastery).toEqual({ E4: 3, B3: 3 });
+    expect(state.round.status).toBe("complete");
+    expect(state.round.cleanAnswers).toBe(8);
+    expect(state.progress.rounds).toBe(1);
+    expect(next(state.round, state.progress)).toEqual(state);
+    expect(progress).toEqual(original);
+  });
+
+  it("reuses review mistakes, help, and question resets without awarding assisted mastery", () => {
+    const progress = { ...emptyProgress(), mastery: { E4: 2, B3: 3 } };
+    const original = structuredClone(progress);
+    let state: ReturnType<typeof answer> = { round: createReviewRound(progress), progress };
+    state = answer(state.round, { string: 6, fret: 0 }, state.progress);
+    expect(state.round.status).toBe("asking");
+    expect(state.round.mistakes).toBe(1);
+    expect(state.round.assisted).toBe(true);
+    expect(state.progress.mastery.E4).toBe(0);
+    state = answer(state.round, { string: 6, fret: 0 }, state.progress);
+    expect(state.round.feedback).toContain("its label is showing");
+    state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+    expect(state.round.status).toBe("correct");
+    expect(state.round.cleanAnswers).toBe(0);
+    expect(state.progress.mastery.E4).toBe(0);
+    state = next(state.round, state.progress);
+    expect(state.round).toMatchObject({ index: 1, assisted: false, mistakes: 0, status: "asking" });
+    state = help(state.round, state.progress);
+    expect(state.round.assisted).toBe(true);
+    state = answer(state.round, { string: 1, fret: 0 }, state.progress);
+    expect(state.round.cleanAnswers).toBe(0);
+    expect(state.progress.mastery.E4).toBe(0);
+    expect(state.progress.unlocked).toBe(0);
+    expect(progress).toEqual(original);
   });
 });

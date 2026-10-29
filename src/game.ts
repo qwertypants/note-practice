@@ -54,7 +54,10 @@ export function answer(
   progress: Progress,
 ): { round: Round; progress: Progress } {
   const note = round.queue[round.index];
-  const lesson = LESSONS.find((item) => item.id === round.lessonId);
+  const lesson =
+    round.mode === "lesson"
+      ? LESSONS.find((item) => item.id === round.lessonId)
+      : undefined;
   if (
     round.status !== "asking" ||
     !note ||
@@ -100,7 +103,10 @@ export function answer(
       ? Math.min(3, (progress.mastery[note.id] ?? 0) + 1)
       : (progress.mastery[note.id] ?? 0),
   };
-  const index = LESSONS.findIndex((item) => item.id === round.lessonId);
+  const index =
+    round.mode === "lesson"
+      ? LESSONS.findIndex((item) => item.id === round.lessonId)
+      : -1;
   const unlocked = lesson && round.mode === "lesson" && lesson.notes.every((item) => (mastery[item.id] ?? 0) >= 3)
     ? Math.max(progress.unlocked, Math.min(LESSONS.length - 1, index + 1))
     : progress.unlocked;
