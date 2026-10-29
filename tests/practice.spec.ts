@@ -292,3 +292,28 @@ test("last lesson celebrates practice without promising another unlock", async (
     page.getByRole("button", { name: /practice again/i }),
   ).toBeVisible();
 });
+
+test("motion settles and changing the motion preference restores content", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await start(page);
+  const card = page.locator(".staff-card");
+  await expect(card).toHaveCSS("transform", "none");
+  const correct = openString(page, await targetString(page));
+  await correct.click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(correct.locator(".note-dot")).toHaveCSS("transform", "none");
+  await expect(page.locator(".feedback-correct")).toHaveCSS(
+    "transform",
+    "none",
+  );
+  await page.getByRole("button", { name: /next note/i }).click();
+  await expect(card).toHaveCSS("transform", "none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.getByRole("button", { name: /how to play/i }).click();
+  await page.getByRole("button", { name: /back to practice/i }).click();
+  await expect(page.locator(".game")).toHaveCSS("transform", "none");
+  await expect(card).toHaveCSS("transform", "none");
+  await expect(positions(page).first()).toBeEnabled();
+});

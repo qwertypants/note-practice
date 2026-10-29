@@ -6,6 +6,7 @@ import { answer, createRound, help, hintsVisible, next } from "./game";
 import { loadProgress, saveProgress } from "./progress";
 import { Staff } from "./components/Staff";
 import { Neck } from "./components/Neck";
+import { usePracticeMotion } from "./usePracticeMotion";
 import "./styles.css";
 
 function Sun({ small = false }: { small?: boolean }) {
@@ -50,6 +51,8 @@ export default function App() {
   const [guide, setGuide] = useState(false);
   const lesson = LESSONS[lessonIndex];
   const target = round?.queue[round.index];
+  const showGuide = guide || !round;
+  const motionScope = usePracticeMotion(showGuide, round);
   if (!lesson) return <p>Lessons are getting ready.</p>;
   function apply(result: ReturnType<typeof answer>) {
     setRound(result.round);
@@ -67,10 +70,9 @@ export default function App() {
   function tap(position: Position) {
     if (round) apply(answer(round, position, progress));
   }
-  const showGuide = guide || !round;
   const hints = target ? hintsVisible(target, progress) : true;
   return (
-    <div className="app-shell">
+    <div className="app-shell" ref={motionScope}>
       <header className="topbar">
         <a
           className="wordmark"

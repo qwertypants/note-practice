@@ -511,11 +511,10 @@ a {
   font-size: 12px;
   transition:
     background 0.15s,
-    transform 0.15s;
+    scale 0.15s;
 }
 .neck-note:hover .note-dot {
   background: #ede8ca;
-  transform: translateY(-2px);
 }
 .neck-note.is-target .note-dot {
   background: var(--yellow);
@@ -899,5 +898,41 @@ footer span {
   .neck-label {
     margin-left: 6px;
     margin-right: 6px;
+  }
+}
+
+/* Press feedback works with touch, mouse, and keyboard without delaying actions. */
+@media (prefers-reduced-motion: no-preference) {
+  .primary-button,
+  .help-button,
+  .lesson-chip {
+    transition:
+      transform 120ms ease,
+      background-color 150ms ease;
+  }
+  .primary-button:active,
+  .help-button:active,
+  .lesson-chip:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .neck-note:active:not(:disabled) .note-dot {
+    scale: 0.92;
+  }
+}
+@media (hover: none) {
+  .neck-note:hover .note-dot {
+    transform: none;
+    background: #fffef8;
+  }
+  .neck-note.is-target:hover .note-dot {
+    background: var(--yellow);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-dot {
+    transition: none;
+  }
+  .neck-note:hover .note-dot {
+    transform: none;
   }
 }
