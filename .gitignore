@@ -1,0 +1,12 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+node_modules/
+dist/
+test-results/
+playwright-report/
+artifacts/
+*.tsbuildinfo
+.superpowers/
+.DS_Store
+.env
+.env.local
