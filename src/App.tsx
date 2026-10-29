@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Position, Round } from "./contracts";
 import { LESSONS } from "./lessons";
 import { STRINGS } from "./music";
-import { answer, createRound, help, hintsVisible, next } from "./game";
+import { answer, createRound, help, next } from "./game";
+import { createNoteAudio, loadMuted, saveMuted, type NoteAudio } from "./audio";
+import { canReview, createReviewRound } from "./review";
 import { loadProgress, saveProgress } from "./progress";
 import { Staff } from "./components/Staff";
 import { Neck } from "./components/Neck";
@@ -49,6 +51,44 @@ export default function App() {
   const [lessonIndex, setLessonIndex] = useState(0);
   const [round, setRound] = useState<Round | null>(null);
   const [guide, setGuide] = useState(false);
+  const [helpRequested, setHelpRequested] = useState(false);
+  const [muted, setMuted] = useState(loadMuted);
+  const [audioMessage, setAudioMessage] = useState("");
+  const audio = useRef<NoteAudio | null>(null);
+  const playbackVersion = useRef(0);
+  useEffect(() => {
+    const player = createNoteAudio();
+    audio.current = player;
+    return () => {
+      playbackVersion.current++;
+      player.dispose();
+      audio.current = null;
+    };
+  }, []);
+  function stopAudio() {
+    playbackVersion.current++;
+    audio.current?.stop();
+    setAudioMessage("");
+  }
+  async function hear(midi: number) {
+    if (muted || !audio.current) return;
+    const version = ++playbackVersion.current;
+    setAudioMessage("");
+    const played = await audio.current.play(midi);
+    if (version === playbackVersion.current && !played)
+      setAudioMessage("Sound is unavailable right now. You can keep practicing.");
+  }
+  function toggleMuted() {
+    stopAudio();
+    const value = !muted;
+    setMuted(value);
+    if (!saveMuted(value))
+      setAudioMessage("Your sound preference will last for this visit.");
+  }
+  function toggleGuide() {
+    stopAudio();
+    setGuide(!guide);
+  }
   const lesson = LESSONS[lessonIndex];
   const target = round?.queue[round.index];
   const showGuide = guide || !round;
@@ -60,6 +100,8 @@ export default function App() {
     setPersistent(saveProgress(result.progress));
   }
   function start(index: number) {
+    stopAudio();
+    setHelpRequested(false);
     const selected = LESSONS[index];
     if (selected) {
       setLessonIndex(index);
@@ -67,10 +109,24 @@ export default function App() {
       setGuide(false);
     }
   }
-  function tap(position: Position) {
-    if (round) apply(answer(round, position, progress));
+  function startReview() {
+    if (!canReview(progress)) return;
+    stopAudio();
+    setHelpRequested(false);
+    setRound(createReviewRound(progress));
+    setGuide(false);
   }
-  const hints = target ? hintsVisible(target, progress) : true;
+  const reviewing = round?.mode === "review";
+  const unlockedNotes = LESSONS.slice(0, progress.unlocked + 1).flatMap((item) => item.notes);
+  const hasWeakNotes = unlockedNotes.some((note) => (progress.mastery[note.id] ?? 0) < 3);
+  function tap(position: Position) {
+    if (!round) return;
+    const result = answer(round, position, progress);
+    apply(result);
+    if (round.status === "asking" && result.round.status === "correct" && target)
+      void hear(target.midi);
+  }
+  const revealed = !!round && (helpRequested || round.status === "correct");
   return (
     <div className="app-shell" ref={motionScope}>
       <header className="topbar">
@@ -79,15 +135,26 @@ export default function App() {
           href="#"
           onClick={(event) => {
             event.preventDefault();
+            stopAudio();
             setGuide(true);
           }}
         >
           <Sun small />
           little frets<span className="wordmark-dot">.</span>
         </a>
-        <button className="quiet-button" onClick={() => setGuide(!guide)}>
-          {guide && round ? "Back to practice ↗" : "How to play ↗"}
-        </button>
+        <div className="topbar-actions">
+          <button
+            className="quiet-button"
+            onClick={toggleMuted}
+            aria-pressed={muted}
+            aria-label="Mute sound"
+          >
+            {muted ? "Sound off" : "Sound on"}
+          </button>
+          <button className="quiet-button" onClick={toggleGuide}>
+            {guide && round ? "Back to practice ↗" : "How to play ↗"}
+          </button>
+        </div>
       </header>
       <div className="app-layout">
         <aside className="journey">
@@ -106,7 +173,7 @@ export default function App() {
             {LESSONS.map((item, index) => (
               <button
                 key={item.id}
-                className={`lesson-chip ${lessonIndex === index ? "selected" : ""}`}
+                className={`lesson-chip ${!reviewing && lessonIndex === index ? "selected" : ""}`}
                 disabled={index > progress.unlocked}
                 onClick={() => start(index)}
               >
@@ -124,6 +191,12 @@ export default function App() {
                 </span>
               </button>
             ))}
+          </div>
+          <div className="review-entry">
+            <button className="quiet-button" disabled={!canReview(progress)} onClick={startReview}>
+              {hasWeakNotes ? "Practice my weak notes" : "Review all learned notes"}
+            </button>
+            {!canReview(progress) && <p>Try a note in a lesson to unlock personalized review.</p>}
           </div>
           <div className="save-note">
             <span>◌</span>
@@ -209,8 +282,8 @@ export default function App() {
                   <span>3</span>
                   <span>
                     <b>Tap, learn, repeat.</b> Tap an open-string circle to
-                    answer. Need a hand? Help is always here. Names gently fade
-                    as you learn.
+                    answer. Need a hand? Help is always here. Names stay hidden until you ask for help
+                    or find the note.
                   </span>
                 </p>
               </div>
@@ -229,7 +302,7 @@ export default function App() {
             <section className="summary">
               <Sun />
               <span className="eyebrow">ONE LITTLE STEP FORWARD</span>
-              <h2>Look at you grow.</h2>
+              <h2>{reviewing ? "A little more familiar." : "Look at you grow."}</h2>
               <p>Eight notes practiced. A little more familiar than before.</p>
               <div className="summary-stats">
                 <div>
@@ -242,7 +315,9 @@ export default function App() {
                 </div>
               </div>
               <p className="summary-message">
-                {!LESSONS[lessonIndex + 1]
+                {reviewing
+                  ? "Your review is complete. Revisit these notes or return to your lessons."
+                  : !LESSONS[lessonIndex + 1]
                   ? "You’ve reached the last lesson. Revisit any notes whenever you like."
                   : progress.unlocked > lessonIndex
                     ? "Your next lesson is ready whenever you are."
@@ -250,11 +325,14 @@ export default function App() {
               </p>
               <button
                 className="primary-button"
-                onClick={() => start(lessonIndex)}
+                onClick={() => reviewing ? startReview() : start(lessonIndex)}
               >
-                Practice again <span>↻</span>
+                {reviewing ? "Review again" : "Practice again"} <span>↻</span>
               </button>
-              {progress.unlocked > lessonIndex && LESSONS[lessonIndex + 1] && (
+              {reviewing && (
+                <button className="quiet-button" onClick={() => start(lessonIndex)}>Back to lessons →</button>
+              )}
+              {!reviewing && progress.unlocked > lessonIndex && LESSONS[lessonIndex + 1] && (
                 <button
                   className="quiet-button"
                   onClick={() => start(lessonIndex + 1)}
@@ -266,7 +344,7 @@ export default function App() {
           ) : round && target ? (
             <section className="game">
               <div className="game-heading">
-                <span className="tag">{lesson.title}</span>
+                <span className="tag">{reviewing ? "Personalized review" : lesson.title}</span>
                 <span className="question-count">
                   {round.index + 1} <span>/ 8 notes</span>
                 </span>
@@ -302,34 +380,31 @@ export default function App() {
                 </p>
               </div>
               <div className="staff-card">
-                <Staff
-                  note={target}
-                  reveal={hints || round.assisted || round.status === "correct"}
-                />
+                <Staff note={target} reveal={revealed} />
                 <div
-                  className={`note-name ${hints || round.assisted || round.status === "correct" ? "" : "name-hidden"}`}
+                  className={`note-name ${revealed ? "" : "name-hidden"}`}
                 >
-                  {hints || round.assisted || round.status === "correct"
+                  {revealed
                     ? target.name
                     : "Your eyes have got this"}
                   <small>
-                    {hints
-                      ? "note-name hint"
-                      : round.assisted || round.status === "correct"
-                        ? "the note you found"
-                        : "name hint tucked away"}
+                    {revealed ? "note name" : "name hint tucked away"}
                   </small>
                 </div>
               </div>
+              <button className="help-button hear-note" disabled={muted} onClick={() => void hear(target.midi)}>
+                Hear this note
+              </button>
+              <p className="audio-status" role="status">{audioMessage}</p>
               <div className="neck-label">
                 <b>Your guitar neck</b>
                 <span>nut at the top ↓</span>
               </div>
               <Neck
                 target={target}
-                maxFret={lesson.maxFret}
-                hints={hints || round.assisted}
-                reveal={round.assisted || round.status === "correct"}
+                maxFret={round.maxFret}
+                hints={revealed}
+                reveal={revealed}
                 disabled={round.status === "correct"}
                 onAnswer={tap}
               />
@@ -347,7 +422,11 @@ export default function App() {
                 {round.status === "correct" ? (
                   <button
                     className="primary-button"
-                    onClick={() => apply(next(round, progress))}
+                    onClick={() => {
+                      stopAudio();
+                      setHelpRequested(false);
+                      apply(next(round, progress));
+                    }}
                   >
                     {round.index === 7 ? "See my progress" : "Next note"}{" "}
                     <span>→</span>
@@ -355,7 +434,10 @@ export default function App() {
                 ) : (
                   <button
                     className="help-button"
-                    onClick={() => apply(help(round, progress))}
+                    onClick={() => {
+                      setHelpRequested(true);
+                      apply(help(round, progress));
+                    }}
                   >
                     <span>✧</span> A little help
                   </button>

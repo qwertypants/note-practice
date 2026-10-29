@@ -62,9 +62,7 @@ test("beginner recovers from a mistake, finishes eight questions, unlocks throug
   const string = await targetString(page);
   await expect(staff(page)).toHaveAttribute(
     "aria-label",
-    string === 1
-      ? "Treble staff showing E, written E5"
-      : "Treble staff showing B, written B4",
+    "Read this note on the treble staff",
   );
   await openString(page, string === 1 ? 2 : 1).click();
   await expect(staff(page)).toHaveAttribute("data-note-id", firstNote ?? "");
@@ -316,4 +314,96 @@ test("motion settles and changing the motion preference restores content", async
   await expect(page.locator(".game")).toHaveCSS("transform", "none");
   await expect(card).toHaveCSS("transform", "none");
   await expect(positions(page).first()).toBeEnabled();
+});
+
+test("note names need help, and mute survives reload", async ({ page }) => {
+  await start(page);
+  await expect(staff(page)).toHaveAttribute("aria-label", "Read this note on the treble staff");
+  await expect(page.locator(".note-name")).not.toHaveText(/^[EB]$/);
+  await expect(openString(page, 1)).toHaveText("·");
+  await page.getByRole("button", { name: "A little help" }).click();
+  await expect(staff(page)).toHaveAttribute("aria-label", /Treble staff showing/);
+  await page.getByRole("button", { name: "Mute sound" }).click();
+  await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Mute sound" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: /let.s find a note/i }).click();
+  await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
+});
+
+test("unavailable audio leaves visual practice usable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "AudioContext", { value: undefined });
+  });
+  await start(page);
+  await page.getByRole("button", { name: "Hear this note" }).click();
+  await expect(page.getByText(/sound is unavailable/i)).toBeVisible();
+  await finishRound(page);
+});
+
+test("audio plays only on request or a correct answer and respects mute", async ({ page }) => {
+  await page.addInitScript(() => {
+    const Original = window.AudioContext;
+    const frequencies: number[] = [];
+    Object.assign(window, { playedFrequencies: frequencies });
+    window.AudioContext = class extends Original {
+      createOscillator() {
+        const oscillator = super.createOscillator();
+        const originalSet = oscillator.frequency.setValueAtTime.bind(oscillator.frequency);
+        oscillator.frequency.setValueAtTime = (value, time) => {
+          frequencies.push(value);
+          return originalSet(value, time);
+        };
+        return oscillator;
+      }
+    };
+  });
+  const frequencies = () => page.evaluate(() => Reflect.get(window, "playedFrequencies") as number[]);
+  await start(page);
+  expect(await frequencies()).toEqual([]);
+  const string = await targetString(page);
+  await page.getByRole("button", { name: "Hear this note" }).click();
+  await expect.poll(async () => (await frequencies()).length).toBe(1);
+  expect((await frequencies())[0]).toBeCloseTo(string === 1 ? 329.63 : 246.94, 1);
+  await openString(page, string === 1 ? 2 : 1).click();
+  expect((await frequencies()).length).toBe(1);
+  await openString(page, string).click();
+  await expect.poll(async () => (await frequencies()).length).toBe(2);
+  await page.getByRole("button", { name: "Mute sound" }).click();
+  await page.getByRole("button", { name: /next note/i }).click();
+  await openString(page, await targetString(page)).click();
+  expect((await frequencies()).length).toBe(2);
+});
+
+test("review targets weaker unlocked notes and returns to lessons without unlocking", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({
+    version: 1, unlocked: 0, rounds: 2, mastery: { E4: 3, B3: 1 },
+  })), storageKey);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Practice my weak notes" }).click();
+  await expect(page.getByText("Personalized review", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (let question = 0; question < 8; question++) {
+    await expect(staff(page)).toHaveAttribute("data-note-id", "B3");
+    await openString(page, 2).click();
+    await page.getByRole("button", { name: /next note|see my progress/i }).click();
+  }
+  await expect(page.getByRole("heading", { name: "A little more familiar." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /try the next lesson/i })).toHaveCount(0);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}"), storageKey);
+  expect(saved).toMatchObject({ unlocked: 0, rounds: 3, mastery: { E4: 3, B3: 3 } });
+  await page.getByRole("button", { name: "Back to lessons" }).click();
+  await expect(page.getByText("Meet E and B", { exact: true }).last()).toBeVisible();
+  await page.getByRole("button", { name: "Review all learned notes" }).click();
+  await expect(positions(page)).toHaveCount(6);
+  await expect(page.getByText("Personalized review", { exact: true })).toBeVisible();
+});
+
+test("personalized review becomes available after the first attempted note", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Practice my weak notes" })).toBeDisabled();
+  await page.getByRole("button", { name: /let.s find a note/i }).click();
+  await openString(page, await targetString(page)).click();
+  await expect(page.getByRole("button", { name: "Practice my weak notes" })).toBeEnabled();
 });

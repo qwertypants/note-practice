@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answer, createRound, help, hintsVisible, next } from "./game";
+import { answer, createRound, help, next } from "./game";
 import { LESSONS } from "./lessons";
 import { noteAt, positionsFor } from "./music";
 import { emptyProgress } from "./progress";
@@ -30,9 +30,7 @@ describe("practice rounds", () => {
   });
   it("restores hints and resets mastery on Help, without awarding assisted mastery", () => {
     const progress = { ...emptyProgress(), mastery: { E4: 3 } };
-    expect(hintsVisible(e, progress)).toBe(false);
     const helped = help(round(), progress);
-    expect(hintsVisible(e, helped.progress)).toBe(true);
     expect(helped.round.assisted).toBe(true);
     const correct = answer(
       helped.round,
@@ -42,7 +40,7 @@ describe("practice rounds", () => {
     expect(correct.progress.mastery.E4).toBe(0);
     expect(correct.round.cleanAnswers).toBe(0);
   });
-  it("keeps a wrong question active, reveals after two misses, and recovers on next", () => {
+  it("keeps a wrong question active, offers help after two misses, and recovers on next", () => {
     let state = answer(
       round(),
       { string: 6, fret: 0 },
@@ -53,7 +51,7 @@ describe("practice rounds", () => {
     expect(state.round.mistakes).toBe(1);
     expect(state.progress.mastery.E4).toBe(0);
     state = answer(state.round, { string: 6, fret: 0 }, state.progress);
-    expect(state.round.feedback).toContain("E");
+    expect(state.round.feedback).toBe("Need a hand? Tap A little help to reveal the note.");
     state = answer(state.round, { string: 1, fret: 0 }, state.progress);
     expect(state.round.status).toBe("correct");
     expect(state.progress.mastery.E4).toBe(0);
@@ -88,16 +86,13 @@ describe("practice rounds", () => {
     expect(state.round.queue[1]?.id).toBe("B3");
     expect(state.round.queue).toHaveLength(8);
   });
-  it("fades hints after three clean finds and restores them after a mistake", () => {
+  it("tracks three clean finds and resets mastery after a mistake", () => {
     let state = help(round(), { ...emptyProgress(), mastery: { E4: 3 } });
-    expect(hintsVisible(e, state.progress)).toBe(true);
     for (let success = 1; success <= 3; success++) {
       state = answer(round(), { string: 1, fret: 0 }, state.progress);
       expect(state.progress.mastery.E4).toBe(success);
-      expect(hintsVisible(e, state.progress)).toBe(success < 3);
     }
     state = answer(round(), { string: 2, fret: 0 }, state.progress);
-    expect(hintsVisible(e, state.progress)).toBe(true);
     expect(state.progress.mastery.E4).toBe(0);
     expect(state.round.feedback).toBe(
       "Try another position. You can take your time.",
@@ -158,7 +153,7 @@ describe("practice rounds", () => {
     expect(state.round.assisted).toBe(true);
     expect(state.progress.mastery.E4).toBe(0);
     state = answer(state.round, { string: 6, fret: 0 }, state.progress);
-    expect(state.round.feedback).toContain("its label is showing");
+    expect(state.round.feedback).toBe("Need a hand? Tap A little help to reveal the note.");
     state = answer(state.round, { string: 1, fret: 0 }, state.progress);
     expect(state.round.status).toBe("correct");
     expect(state.round.cleanAnswers).toBe(0);

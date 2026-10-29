@@ -29,9 +29,6 @@ export function createRound(lesson: Lesson): Round {
     feedback: "",
   };
 }
-export function hintsVisible(note: Note, progress: Progress): boolean {
-  return (progress.mastery[note.id] ?? 0) < 3;
-}
 export function help(
   round: Round,
   progress: Progress,
@@ -89,7 +86,7 @@ export function answer(
         streak: 0,
         feedback:
           mistakes >= 2
-            ? `Find ${note.name} — its label is showing on the neck.`
+            ? "Need a hand? Tap A little help to reveal the note."
             : "Try another position. You can take your time.",
       },
       progress: { ...progress, mastery: { ...progress.mastery, [note.id]: 0 } },
