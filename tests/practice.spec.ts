@@ -323,10 +323,12 @@ test("note names need help, and mute survives reload", async ({ page }) => {
   await expect(openString(page, 1)).toHaveText("·");
   await page.getByRole("button", { name: "A little help" }).click();
   await expect(staff(page)).toHaveAttribute("aria-label", /Treble staff showing/);
-  await page.getByRole("button", { name: "Mute sound" }).click();
+  await expect(page.getByRole("button", { name: "Sound on", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Sound on", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Mute sound" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: /let.s find a note/i }).click();
   await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
 });
@@ -369,7 +371,9 @@ test("audio plays only on request or a correct answer and respects mute", async 
   expect((await frequencies()).length).toBe(1);
   await openString(page, string).click();
   await expect.poll(async () => (await frequencies()).length).toBe(2);
-  await page.getByRole("button", { name: "Mute sound" }).click();
+  await expect(page.getByRole("button", { name: "Sound on", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Sound on", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: /next note/i }).click();
   await openString(page, await targetString(page)).click();
   expect((await frequencies()).length).toBe(2);

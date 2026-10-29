@@ -146,8 +146,7 @@ export default function App() {
           <button
             className="quiet-button"
             onClick={toggleMuted}
-            aria-pressed={muted}
-            aria-label="Mute sound"
+            aria-pressed={!muted}
           >
             {muted ? "Sound off" : "Sound on"}
           </button>
