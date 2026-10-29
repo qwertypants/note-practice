@@ -2,6 +2,8 @@
 
 A relaxed, phone-first game for learning guitar note reading. See a note on a staff, then tap its position on the guitar neck. Start with open E and B, gradually learn the other strings, and move into natural notes within the first three frets.
 
+[Play Little Frets](https://qwertypants.github.io/note-practice/) · [Source code](https://github.com/qwertypants/note-practice)
+
 ## Run locally
 
 Use Node.js 22.12 or newer and npm.
@@ -44,3 +46,15 @@ References: [Yamaha's guitar tuning guide](https://www.yamaha.com/en/musical_ins
 ## Project records
 
 The approved design is in `tasks/plan.md`, acceptance criteria in `tasks/todo.md`, and implementation decisions and verification in `tasks/execution.md`.
+
+## GitHub Pages
+
+Pushes to `main` run unit tests, a production build, and desktop and phone browser tests before deploying `dist/` to GitHub Pages. `npm run build:pages` builds with the `/note-practice/` base path. Enable GitHub Actions as the Pages source in repository settings.
+
+## Contributing
+
+Bug reports and pull requests are welcome. Describe how to reproduce a bug and run the verification commands above before submitting a change.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
