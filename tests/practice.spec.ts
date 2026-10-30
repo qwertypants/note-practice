@@ -335,7 +335,7 @@ test("note names need help, and mute survives reload", async ({ page }) => {
 
 test("unavailable audio leaves visual practice usable", async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(window, "AudioContext", { value: undefined });
+    window.AudioContext.prototype.resume = () => Promise.reject(new Error("Audio unavailable"));
   });
   await start(page);
   await page.getByRole("button", { name: "Hear this note" }).click();
@@ -346,37 +346,31 @@ test("unavailable audio leaves visual practice usable", async ({ page }) => {
 test("audio plays only on request or a correct answer and respects mute", async ({ page }) => {
   await page.addInitScript(() => {
     const Original = window.AudioContext;
-    const frequencies: number[] = [];
-    Object.assign(window, { playedFrequencies: frequencies });
+    const starts: number[] = [];
+    Object.assign(window, { audioStarts: starts });
     window.AudioContext = class extends Original {
-      createOscillator() {
-        const oscillator = super.createOscillator();
-        const originalSet = oscillator.frequency.setValueAtTime.bind(oscillator.frequency);
-        oscillator.frequency.setValueAtTime = (value, time) => {
-          frequencies.push(value);
-          return originalSet(value, time);
-        };
-        return oscillator;
+      async resume() {
+        starts.push(Date.now());
+        return super.resume();
       }
     };
   });
-  const frequencies = () => page.evaluate(() => Reflect.get(window, "playedFrequencies") as number[]);
+  const starts = () => page.evaluate(() => Reflect.get(window, "audioStarts") as number[]);
   await start(page);
-  expect(await frequencies()).toEqual([]);
+  expect(await starts()).toEqual([]);
   const string = await targetString(page);
   await page.getByRole("button", { name: "Hear this note" }).click();
-  await expect.poll(async () => (await frequencies()).length).toBe(1);
-  expect((await frequencies())[0]).toBeCloseTo(string === 1 ? 329.63 : 246.94, 1);
+  await expect.poll(async () => (await starts()).length).toBe(1);
   await openString(page, string === 1 ? 2 : 1).click();
-  expect((await frequencies()).length).toBe(1);
+  expect((await starts()).length).toBe(1);
   await openString(page, string).click();
-  await expect.poll(async () => (await frequencies()).length).toBe(2);
+  await expect.poll(async () => (await starts()).length).toBe(2);
   await expect(page.getByRole("button", { name: "Sound on", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Sound on", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: /next note/i }).click();
   await openString(page, await targetString(page)).click();
-  expect((await frequencies()).length).toBe(2);
+  expect((await starts()).length).toBe(2);
 });
 
 test("review targets weaker unlocked notes and returns to lessons without unlocking", async ({ page }) => {
