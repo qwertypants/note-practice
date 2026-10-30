@@ -1,12 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 const tone = vi.hoisted(() => ({
   start: vi.fn(async () => {}), now: vi.fn(() => 10),
-  attack: vi.fn(), release: vi.fn(), dispose: vi.fn(), destination: vi.fn(),
+  attack: vi.fn(), release: vi.fn(), dispose: vi.fn(), ampDispose: vi.fn(), destination: vi.fn(), connect: vi.fn(),
+  synthOptions: vi.fn(), ampOptions: vi.fn(),
 }));
 vi.mock("tone", () => ({
   start: tone.start, now: tone.now,
-  PluckSynth: class {
+  Distortion: class {
+    constructor(options: unknown) { tone.ampOptions(options); }
     toDestination() { tone.destination(); return this; }
+    dispose = tone.ampDispose;
+  },
+  PluckSynth: class {
+    constructor(options: unknown) { tone.synthOptions(options); }
+    connect(amp: unknown) { tone.connect(amp); return this; }
     triggerAttack = tone.attack;
     triggerRelease = tone.release;
     dispose = tone.dispose;
@@ -38,6 +45,9 @@ describe("note audio", () => {
     expect(tone.destination).not.toHaveBeenCalled();
     expect(await audio.play(69)).toBe(true);
     expect(tone.destination).toHaveBeenCalledOnce();
+    expect(tone.synthOptions).toHaveBeenCalledWith({ attackNoise: 0.45, dampening: 2600, resonance: 0.88, release: 0.7 });
+    expect(tone.ampOptions).toHaveBeenCalledWith({ distortion: 0.12, wet: 0.25 });
+    expect(tone.connect).toHaveBeenCalledOnce();
     expect(tone.attack).toHaveBeenCalledWith(440, 10);
     expect(await audio.play(64)).toBe(true);
     expect(tone.attack).toHaveBeenLastCalledWith(440 * 2 ** ((64 - 69) / 12), 10);
@@ -66,6 +76,7 @@ describe("note audio", () => {
     audio.dispose(); audio.dispose();
     expect(tone.release).toHaveBeenCalled();
     expect(tone.dispose).toHaveBeenCalledOnce();
+    expect(tone.ampDispose).toHaveBeenCalledOnce();
     expect(await audio.play(69)).toBe(false);
   });
 });

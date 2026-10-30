@@ -25,6 +25,7 @@ export function saveMuted(muted: boolean): boolean {
 
 export function createNoteAudio(): NoteAudio {
   let synth: PluckSynth | undefined;
+  let amp: Distortion | undefined;
   let disposed = false;
   let cancelPending: (() => void) | undefined;
   let releaseVoice: (() => void) | undefined;
@@ -55,7 +56,15 @@ export function createNoteAudio(): NoteAudio {
           cancellation,
         ]);
         if (!started || cancelled || disposed) return false;
-        synth ??= new PluckSynth().toDestination();
+        if (!synth) {
+          amp = new Distortion({ distortion: 0.12, wet: 0.25 }).toDestination();
+          synth = new PluckSynth({
+            attackNoise: 0.45,
+            dampening: 2600,
+            resonance: 0.88,
+            release: 0.7,
+          }).connect(amp);
+        }
         const time = now();
         synth.triggerAttack(440 * 2 ** ((midi - 69) / 12), time);
         cleanup = () => {
@@ -77,8 +86,10 @@ export function createNoteAudio(): NoteAudio {
       disposed = true;
       stop();
       synth?.dispose();
+      amp?.dispose();
       synth = undefined;
+      amp = undefined;
     },
   };
 }
-import { PluckSynth, start, now } from "tone";
+import { Distortion, PluckSynth, start, now } from "tone";
