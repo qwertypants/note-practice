@@ -24,7 +24,7 @@ export function saveMuted(muted: boolean): boolean {
 }
 
 export function createNoteAudio(): NoteAudio {
-  let context: AudioContext | undefined;
+  let synth: PluckSynth | undefined;
   let disposed = false;
   let cancelPending: (() => void) | undefined;
   let releaseVoice: (() => void) | undefined;
@@ -50,44 +50,18 @@ export function createNoteAudio(): NoteAudio {
       });
       let cleanup: (() => void) | undefined;
       try {
-        context ??= new AudioContext();
-        const current = context;
-        if (current.state !== "running") {
-          const resumed = await Promise.race([
-            current.resume().then(() => true),
-            cancellation,
-          ]);
-          if (!resumed || cancelled || disposed) return false;
-        }
-        if (current.state !== "running" || cancelled || disposed) return false;
-        const oscillator = current.createOscillator();
-        cleanup = () => oscillator.disconnect();
-        const gain = current.createGain();
-        let started = false;
-        let released = false;
+        const started = await Promise.race([
+          start().then(() => true),
+          cancellation,
+        ]);
+        if (!started || cancelled || disposed) return false;
+        synth ??= new PluckSynth().toDestination();
+        const time = now();
+        synth.triggerAttack(440 * 2 ** ((midi - 69) / 12), time);
         cleanup = () => {
-          if (released) return;
-          released = true;
-          oscillator.onended = null;
-          if (started) {
-            try { oscillator.stop(); } catch { /* Already ended. */ }
-          }
-          oscillator.disconnect();
-          gain.disconnect();
+          synth?.triggerRelease(now());
           if (releaseVoice === cleanup) releaseVoice = undefined;
         };
-        const now = current.currentTime;
-        oscillator.type = "triangle";
-        oscillator.frequency.setValueAtTime(440 * 2 ** ((midi - 69) / 12), now);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.2, now + 0.005);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
-        oscillator.connect(gain);
-        gain.connect(current.destination);
-        oscillator.onended = cleanup;
-        oscillator.start(now);
-        started = true;
-        oscillator.stop(now + 0.7);
         releaseVoice = cleanup;
         return true;
       } catch {
@@ -102,11 +76,9 @@ export function createNoteAudio(): NoteAudio {
       if (disposed) return;
       disposed = true;
       stop();
-      const previous = context;
-      context = undefined;
-      try {
-        void previous?.close().catch(() => {});
-      } catch { /* Audio failures must not interrupt practice. */ }
+      synth?.dispose();
+      synth = undefined;
     },
   };
 }
+import { PluckSynth, start, now } from "tone";
