@@ -5,6 +5,8 @@
   background: #f6f4eb;
   font-synthesis: none;
   font-weight: 400;
+  font-size: 100%;
+  line-height: 1.6;
   --ink: #233d32;
   --muted: #647368;
   --line: #dce0d2;
@@ -48,7 +50,9 @@ a {
   padding: 0 42px;
 }
 .topbar {
-  height: 113px;
+  min-height: 113px;
+  gap: 16px;
+  padding: 20px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -59,7 +63,7 @@ a {
   align-items: center;
   text-decoration: none;
   font-family: Georgia, serif;
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: bold;
   letter-spacing: -1.4px;
   gap: 9px;
@@ -81,9 +85,9 @@ a {
   border: 0;
   background: transparent;
   min-height: 44px;
-  font-size: 13px;
+  font-size: 1rem;
   font-weight: 600;
-  padding: 10px 0;
+  padding: 10px 4px;
 }
 .app-layout {
   display: grid;
@@ -93,14 +97,14 @@ a {
   align-items: start;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 0.12em;
   margin: 0 0 18px;
 }
 .journey h1 {
   font-family: Georgia, serif;
-  font-size: 43px;
+  font-size: 2.875rem;
   line-height: 1.11;
   font-weight: 400;
   letter-spacing: -1.8px;
@@ -111,7 +115,7 @@ a {
   color: #6a7860;
 }
 .aside-copy {
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.8;
   color: var(--muted);
   margin: 20px 0 31px;
@@ -141,7 +145,7 @@ a {
   opacity: 0.58;
 }
 .lesson-number {
-  font-size: 12px;
+  font-size: 1rem;
   color: #51604c;
   border: 1px solid #bbc5b1;
   border-radius: 50%;
@@ -153,36 +157,36 @@ a {
 }
 .lesson-chip b {
   display: block;
-  font-size: 12px;
+  font-size: 1rem;
 }
 .lesson-chip small {
   display: block;
-  font-size: 10px;
+  font-size: 0.875rem;
   line-height: 1.5;
   margin-top: 4px;
   color: #596656;
 }
 .lesson-arrow {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 0.875rem;
 }
 .save-note {
   display: flex;
   gap: 10px;
-  font-size: 11px;
+  font-size: 1rem;
   margin-top: 30px;
   color: var(--muted);
   line-height: 1.7;
 }
 .save-note > span {
-  font-size: 25px;
+  font-size: 1.875rem;
 }
 .save-note p {
   margin: 0;
 }
 .save-note small {
   display: block;
-  font-size: 10px;
+  font-size: 0.875rem;
 }
 .practice-panel {
   background: #fffef8;
@@ -199,6 +203,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 .guide-top .sun {
   width: 73px;
@@ -207,8 +212,8 @@ a {
   margin: -8px -3px -10px 0;
 }
 .tag {
-  font-size: 9px;
-  letter-spacing: 1.5px;
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
   background: #eef0e5;
   padding: 8px 10px;
   border-radius: 6px;
@@ -217,7 +222,7 @@ a {
 .guide h2,
 .summary h2 {
   font-family: Georgia, serif;
-  font-size: 39px;
+  font-size: 2.625rem;
   letter-spacing: -1.4px;
   line-height: 1.08;
   font-weight: 400;
@@ -225,7 +230,7 @@ a {
 }
 .guide > p,
 .summary > p {
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.8;
   color: var(--muted);
 }
@@ -261,11 +266,11 @@ a {
 }
 .guide-notes b {
   font-family: Georgia, serif;
-  font-size: 24px;
+  font-size: 1.75rem;
 }
 .guide-notes small {
   display: block;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -276,18 +281,18 @@ a {
   display: flex;
   align-items: start;
   gap: 12px;
-  font-size: 11px;
+  font-size: 1rem;
   line-height: 1.8;
   color: var(--muted);
 }
 .guide-steps p > span:first-child {
-  height: 23px;
-  min-width: 23px;
+  height: 28px;
+  min-width: 28px;
   border: 1px solid #c7cebc;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--ink);
 }
 .guide-steps b {
@@ -300,8 +305,8 @@ a {
   color: #fffef6;
   width: 100%;
   padding: 15px 19px;
-  min-height: 52px;
-  font-size: 13px;
+  min-height: 56px;
+  font-size: 1rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -311,12 +316,12 @@ a {
   background: #365345;
 }
 .primary-button > span {
-  font-size: 19px;
+  font-size: 1.1875rem;
   color: var(--yellow);
 }
 .guide .gentle-note {
   text-align: center;
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-bottom: 0;
 }
 .game {
@@ -326,15 +331,17 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .question-count {
-  font-size: 13px;
+  font-size: 1rem;
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .question-count > span {
-  font-size: 11px;
+  font-size: 1rem;
   color: var(--muted);
   font-weight: 400;
 }
@@ -361,13 +368,13 @@ a {
 .question-title h2 {
   font-family: Georgia, serif;
   font-weight: 400;
-  font-size: 27px;
+  font-size: 2rem;
   letter-spacing: -0.7px;
   margin: 0 0 9px;
 }
 .question-title p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 1rem;
   line-height: 1.6;
   margin: 0;
 }
@@ -381,12 +388,14 @@ a {
   min-height: 185px;
 }
 .staff-card .staff {
-  width: 75%;
+  width: 65%;
+  min-width: 0;
   height: 185px;
 }
 .note-name {
   font-family: Georgia, serif;
-  font-size: 44px;
+  font-size: 3.25rem;
+  min-width: 0;
   line-height: 1;
   text-align: center;
   flex: 1;
@@ -395,7 +404,7 @@ a {
 .note-name small {
   display: block;
   font-family: "DM Sans", sans-serif;
-  font-size: 8px;
+  font-size: 0.875rem;
   line-height: 1.5;
   color: var(--muted);
   margin-top: 10px;
@@ -403,7 +412,7 @@ a {
 }
 .note-name.name-hidden {
   font:
-    italic 12px/1.6 Georgia,
+    italic 1rem/1.6 Georgia,
     serif;
   color: var(--muted);
 }
@@ -411,11 +420,13 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 1rem;
   margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .neck-label span {
-  font-size: 9px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .neck-wrap {
@@ -427,11 +438,11 @@ a {
   text-align: center;
 }
 .string-headings b {
-  font-size: 13px;
+  font-size: 1rem;
 }
 .string-headings small {
   display: block;
-  font-size: 8px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -465,7 +476,7 @@ a {
   transform: translateY(-50%);
   width: 17px;
   text-align: center;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .neck-note {
@@ -503,12 +514,12 @@ a {
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid #c9cfbb;
   background: #fffef8;
-  font-size: 12px;
+  font-size: 1rem;
   transition:
     background 0.15s,
     scale 0.15s;
@@ -529,7 +540,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 8px;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
   color: var(--muted);
   margin: 13px 0 0;
   gap: 4px;
@@ -540,7 +552,7 @@ a {
   border-radius: 8px;
   background: #f3f4eb;
   padding: 12px;
-  font-size: 11px;
+  font-size: 1rem;
   color: #5f6c58;
   line-height: 1.6;
   text-align: center;
@@ -552,7 +564,7 @@ a {
 .streak {
   display: block;
   font-weight: bold;
-  font-size: 10px;
+  font-size: 0.875rem;
   margin-top: 3px;
 }
 .game-actions {
@@ -567,15 +579,15 @@ a {
   border: 1px solid #c4cdb6;
   border-radius: 10px;
   padding: 10px 24px;
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 600;
 }
 .help-button > span {
-  font-size: 19px;
+  font-size: 1.1875rem;
   margin-right: 7px;
 }
 .no-rush {
-  font-size: 9px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .summary {
@@ -590,10 +602,10 @@ a {
 }
 .summary .eyebrow {
   display: block;
-  font-size: 9px;
+  font-size: 0.875rem;
 }
 .summary h2 {
-  font-size: 39px;
+  font-size: 2.625rem;
 }
 .summary-stats {
   display: grid;
@@ -605,31 +617,31 @@ a {
 }
 .summary-stats b {
   font-family: Georgia, serif;
-  font-size: 36px;
+  font-size: 2.25rem;
   font-weight: 400;
   display: block;
 }
 .summary-stats span {
-  font-size: 10px;
+  font-size: 0.875rem;
   color: var(--muted);
 }
 .summary .summary-message {
-  font-size: 12px;
+  font-size: 1rem;
   margin-bottom: 26px;
 }
 .summary > .quiet-button {
   margin-top: 12px;
 }
 footer {
-  font-size: 10px;
-  color: #75806d;
+  font-size: 0.875rem;
+  color: var(--muted);
   padding: 30px 0;
   display: flex;
   justify-content: space-between;
   gap: 10px;
 }
 footer span {
-  font-size: 8px;
+  font-size: 0.875rem;
   letter-spacing: 1.4px;
 }
 @media (min-width: 1000px) {
@@ -647,23 +659,25 @@ footer span {
     min-height: 700px;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 960px) {
   .app-shell {
     padding: 0 20px;
     max-width: 570px;
   }
   .topbar {
-    height: 80px;
+    min-height: 80px;
+    flex-wrap: wrap;
+    padding: 16px 0;
   }
   .wordmark {
-    font-size: 26px;
+    font-size: 1.625rem;
   }
   .wordmark .sun {
     width: 31px;
     height: 31px;
   }
   .topbar > .quiet-button {
-    font-size: 11px;
+    font-size: 1rem;
   }
   .app-layout {
     display: flex;
@@ -688,7 +702,7 @@ footer span {
     gap: 8px;
   }
   .lesson-chip {
-    min-height: 49px;
+    min-height: 56px;
     padding: 9px 11px;
     flex-shrink: 0;
     width: auto;
@@ -700,21 +714,21 @@ footer span {
     display: none;
   }
   .lesson-chip b {
-    font-size: 11px;
+    font-size: 1rem;
   }
   .lesson-number {
-    width: 23px;
-    height: 23px;
-    font-size: 9px;
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
   }
   .save-note {
     order: 2;
     margin: 0 auto;
-    font-size: 10px;
+    font-size: 0.875rem;
     max-width: 310px;
   }
   .save-note small {
-    font-size: 9px;
+    font-size: 0.875rem;
   }
   .practice-panel {
     width: 100%;
@@ -726,23 +740,23 @@ footer span {
     padding: 25px;
   }
   .guide h2 {
-    font-size: 35px;
+    font-size: 2.375rem;
   }
   .guide-top .sun {
     width: 65px;
     height: 65px;
   }
   .guide > p {
-    font-size: 12px;
+    font-size: 1rem;
   }
   .guide-steps p {
-    font-size: 11px;
+    font-size: 1rem;
   }
   .game {
     padding: 23px 24px;
   }
   .question-title h2 {
-    font-size: 25px;
+    font-size: 1.875rem;
   }
   .staff-card {
     margin-bottom: 21px;
@@ -757,7 +771,7 @@ footer span {
     padding: 40px 25px;
   }
   footer {
-    font-size: 9px;
+    font-size: 0.875rem;
     justify-content: center;
     padding: 23px 0;
   }
@@ -776,14 +790,14 @@ footer span {
     padding: 22px 18px;
   }
   .guide h2 {
-    font-size: 31px;
+    font-size: 2.125rem;
   }
   .tag {
-    font-size: 8px;
+    font-size: 0.875rem;
     letter-spacing: 1px;
   }
   .question-title h2 {
-    font-size: 23px;
+    font-size: 1.75rem;
   }
   .neck-wrap {
     padding-left: 15px;
@@ -793,21 +807,21 @@ footer span {
     min-height: 48px;
   }
   .note-dot {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
   .fret-number {
     left: -18px;
   }
   .neck-caption {
-    font-size: 7px;
+    font-size: 0.875rem;
   }
   .note-name {
-    font-size: 37px;
+    font-size: 2.75rem;
     padding-right: 12px;
   }
   .staff-card .staff {
-    width: 73%;
+    width: 62%;
   }
   .guide-notes {
     gap: 9px;
@@ -817,10 +831,10 @@ footer span {
     height: 55px;
   }
   .wordmark {
-    font-size: 24px;
+    font-size: 1.625rem;
   }
   .topbar > .quiet-button {
-    font-size: 10px;
+    font-size: 0.875rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -837,7 +851,7 @@ footer span {
   text-align: center;
 }
 .first-neck > .eyebrow {
-  font-size: 8px;
+  font-size: 0.875rem;
   letter-spacing: 1.4px;
 }
 .first-neck > div {
@@ -859,11 +873,11 @@ footer span {
   height: 30px;
   border: 1px solid #c9cfbb;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 1rem;
   font-weight: 500;
 }
 .first-neck small {
-  font-size: 8px;
+  font-size: 0.875rem;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -872,12 +886,12 @@ footer span {
   border-color: #ac8c26;
 }
 .first-neck > p {
-  font-size: 9px;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.6;
 }
 .string-headings b {
-  font-size: 11px;
+  font-size: 1rem;
 }
 @media (max-width: 380px) {
   .game {
@@ -938,12 +952,12 @@ footer span {
 }
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-.audio-status { font-size: 0.85rem; min-height: 1.2em; }
+.audio-status { font-size: 1rem; min-height: 1.2em; }
 .hear-note { margin-top: 8px; }
 .hear-note:disabled { opacity: 0.55; cursor: default; }
 .review-entry { margin-top: 20px; }
-.review-entry p { font-size: 0.85rem; line-height: 1.5; }
+.review-entry p { font-size: 1rem; line-height: 1.5; }
 @media (max-width: 480px) {
-  .topbar-actions { gap: 4px; }
-  .topbar-actions .quiet-button { font-size: 0.75rem; }
+  .topbar-actions { gap: 12px; justify-content: space-between; width: 100%; }
+  .topbar-actions .quiet-button { font-size: 0.875rem; }
 }
