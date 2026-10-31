@@ -54,7 +54,7 @@ export default function App() {
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
   const [audioMessage, setAudioMessage] = useState("");
-  const pageRef = useRef<HTMLDivElement | null>(null);
+  const quizRef = useRef<HTMLElement | null>(null);
   const audio = useRef<NoteAudio | null>(null);
   const playbackVersion = useRef(0);
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function App() {
     setPersistent(saveProgress(result.progress));
   }
   function scrollToTop() {
-    pageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function start(index: number) {
     stopAudio();
@@ -134,10 +134,7 @@ export default function App() {
   }
   const revealed = !!round && (helpRequested || round.status === "correct");
   return (
-    <div className="app-shell" ref={(element) => {
-      pageRef.current = element;
-      motionScope.current = element;
-    }}>
+    <div className="app-shell" ref={motionScope}>
       <header className="topbar">
         <a
           className="wordmark"
@@ -350,7 +347,7 @@ export default function App() {
               )}
             </section>
           ) : round && target ? (
-            <section className="game">
+            <section className="game" ref={quizRef}>
               <div className="game-heading">
                 <span className="tag">{reviewing ? "Personalized review" : lesson.title}</span>
                 <span className="question-count">
