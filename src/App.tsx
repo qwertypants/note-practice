@@ -54,6 +54,7 @@ export default function App() {
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
   const [audioMessage, setAudioMessage] = useState("");
+  const gameRef = useRef<HTMLElement | null>(null);
   const audio = useRef<NoteAudio | null>(null);
   const playbackVersion = useRef(0);
   useEffect(() => {
@@ -98,6 +99,9 @@ export default function App() {
     setRound(result.round);
     setProgress(result.progress);
     setPersistent(saveProgress(result.progress));
+  }
+  function scrollToExercise() {
+    gameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function start(index: number) {
     stopAudio();
@@ -341,7 +345,7 @@ export default function App() {
               )}
             </section>
           ) : round && target ? (
-            <section className="game">
+            <section className="game" ref={gameRef}>
               <div className="game-heading">
                 <span className="tag">{reviewing ? "Personalized review" : lesson.title}</span>
                 <span className="question-count">
@@ -425,6 +429,7 @@ export default function App() {
                       stopAudio();
                       setHelpRequested(false);
                       apply(next(round, progress));
+                      requestAnimationFrame(scrollToExercise);
                     }}
                   >
                     {round.index === 7 ? "See my progress" : "Next note"}{" "}
@@ -436,6 +441,7 @@ export default function App() {
                     onClick={() => {
                       setHelpRequested(true);
                       apply(help(round, progress));
+                      requestAnimationFrame(scrollToExercise);
                     }}
                   >
                     <span>✧</span> A little help
