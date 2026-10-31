@@ -54,7 +54,7 @@ export default function App() {
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
   const [audioMessage, setAudioMessage] = useState("");
-  const gameRef = useRef<HTMLElement | null>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const audio = useRef<NoteAudio | null>(null);
   const playbackVersion = useRef(0);
   useEffect(() => {
@@ -100,8 +100,8 @@ export default function App() {
     setProgress(result.progress);
     setPersistent(saveProgress(result.progress));
   }
-  function scrollToExercise() {
-    gameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function scrollToTop() {
+    pageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function start(index: number) {
     stopAudio();
@@ -111,6 +111,7 @@ export default function App() {
       setLessonIndex(index);
       setRound(createRound(selected));
       setGuide(false);
+      requestAnimationFrame(scrollToTop);
     }
   }
   function startReview() {
@@ -119,6 +120,7 @@ export default function App() {
     setHelpRequested(false);
     setRound(createReviewRound(progress));
     setGuide(false);
+    requestAnimationFrame(scrollToTop);
   }
   const reviewing = round?.mode === "review";
   const unlockedNotes = LESSONS.slice(0, progress.unlocked + 1).flatMap((item) => item.notes);
@@ -132,7 +134,10 @@ export default function App() {
   }
   const revealed = !!round && (helpRequested || round.status === "correct");
   return (
-    <div className="app-shell" ref={motionScope}>
+    <div className="app-shell" ref={(element) => {
+      pageRef.current = element;
+      motionScope.current = element;
+    }}>
       <header className="topbar">
         <a
           className="wordmark"
@@ -345,7 +350,7 @@ export default function App() {
               )}
             </section>
           ) : round && target ? (
-            <section className="game" ref={gameRef}>
+            <section className="game">
               <div className="game-heading">
                 <span className="tag">{reviewing ? "Personalized review" : lesson.title}</span>
                 <span className="question-count">
@@ -429,7 +434,7 @@ export default function App() {
                       stopAudio();
                       setHelpRequested(false);
                       apply(next(round, progress));
-                      requestAnimationFrame(scrollToExercise);
+                      requestAnimationFrame(scrollToTop);
                     }}
                   >
                     {round.index === 7 ? "See my progress" : "Next note"}{" "}
@@ -441,7 +446,7 @@ export default function App() {
                     onClick={() => {
                       setHelpRequested(true);
                       apply(help(round, progress));
-                      requestAnimationFrame(scrollToExercise);
+                      requestAnimationFrame(scrollToTop);
                     }}
                   >
                     <span>✧</span> A little help
