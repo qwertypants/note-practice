@@ -1,21 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 const tone = vi.hoisted(() => ({
   start: vi.fn(async () => {}), now: vi.fn(() => 10),
-  attack: vi.fn(), release: vi.fn(), dispose: vi.fn(), ampDispose: vi.fn(), destination: vi.fn(), connect: vi.fn(),
-  synthOptions: vi.fn(), ampOptions: vi.fn(),
+  attack: vi.fn(), releaseAll: vi.fn(), dispose: vi.fn(), destination: vi.fn(),
+  samplerOptions: vi.fn(), ready: vi.fn((onload: () => void, _onerror: (error: Error) => void) => queueMicrotask(onload)),
 }));
 vi.mock("tone", () => ({
   start: tone.start, now: tone.now,
-  Distortion: class {
-    constructor(options: unknown) { tone.ampOptions(options); }
+  Sampler: class {
+    loaded = false;
+    constructor(options: { onload: () => void; onerror: (error: Error) => void }) {
+      tone.samplerOptions(options);
+      tone.ready(() => { this.loaded = true; options.onload(); }, options.onerror);
+    }
     toDestination() { tone.destination(); return this; }
-    dispose = tone.ampDispose;
-  },
-  PluckSynth: class {
-    constructor(options: unknown) { tone.synthOptions(options); }
-    connect(amp: unknown) { tone.connect(amp); return this; }
     triggerAttack = tone.attack;
-    triggerRelease = tone.release;
+    releaseAll = tone.releaseAll;
     dispose = tone.dispose;
   },
 }));
@@ -24,6 +23,7 @@ import { createNoteAudio, loadMuted, saveMuted } from "./audio";
 afterEach(() => {
   vi.unstubAllGlobals(); vi.clearAllMocks();
   tone.start.mockResolvedValue(undefined); tone.now.mockReturnValue(10);
+  tone.ready.mockImplementation((onload) => queueMicrotask(onload));
 });
 
 describe("mute preference", () => {
@@ -40,18 +40,19 @@ describe("mute preference", () => {
 });
 
 describe("note audio", () => {
-  it("creates a pluck lazily at the requested sounding MIDI pitch", async () => {
+  it("loads recorded guitar strings lazily at the requested sounding MIDI pitch", async () => {
     const audio = createNoteAudio();
     expect(tone.destination).not.toHaveBeenCalled();
     expect(await audio.play(69)).toBe(true);
     expect(tone.destination).toHaveBeenCalledOnce();
-    expect(tone.synthOptions).toHaveBeenCalledWith({ attackNoise: 0.45, dampening: 2600, resonance: 0.88, release: 0.7 });
-    expect(tone.ampOptions).toHaveBeenCalledWith({ distortion: 0.12, wet: 0.25 });
-    expect(tone.connect).toHaveBeenCalledOnce();
+    expect(tone.samplerOptions).toHaveBeenCalledWith(expect.objectContaining({
+      urls: { 40: "E2.mp3", 45: "A2.mp3", 50: "D3.mp3", 55: "G3.mp3", 59: "B3.mp3", 64: "E4.mp3" },
+      baseUrl: expect.stringMatching(/guitar\/$/),
+    }));
     expect(tone.attack).toHaveBeenCalledWith(440, 10);
     expect(await audio.play(64)).toBe(true);
     expect(tone.attack).toHaveBeenLastCalledWith(440 * 2 ** ((64 - 69) / 12), 10);
-    expect(tone.release).toHaveBeenCalledWith(10);
+    expect(tone.releaseAll).toHaveBeenCalledWith(10);
   });
 
   it("stops a pending start and does not play after cancellation", async () => {
@@ -66,6 +67,29 @@ describe("note audio", () => {
     expect(tone.attack).not.toHaveBeenCalled();
   });
 
+  it("stops a pending sample download and does not play when it finishes", async () => {
+    let finishLoad!: () => void;
+    tone.ready.mockImplementationOnce((onload) => { finishLoad = onload; });
+    const audio = createNoteAudio();
+    const pending = audio.play(64);
+    await vi.waitFor(() => expect(tone.ready).toHaveBeenCalledOnce());
+    audio.stop();
+    expect(await pending).toBe(false);
+    finishLoad();
+    await Promise.resolve();
+    expect(tone.attack).not.toHaveBeenCalled();
+    audio.dispose();
+  });
+
+  it("can retry after a sample fails to load", async () => {
+    tone.ready.mockImplementationOnce((_onload, onerror) => queueMicrotask(() => onerror(Error("missing sample"))));
+    const audio = createNoteAudio();
+    expect(await audio.play(64)).toBe(false);
+    expect(await audio.play(64)).toBe(true);
+    expect(tone.samplerOptions).toHaveBeenCalledTimes(2);
+    audio.dispose();
+  });
+
   it("rejects invalid MIDI, handles Tone failures, and disposes idempotently", async () => {
     const audio = createNoteAudio();
     for (const midi of [NaN, Infinity, -1, 128]) expect(await audio.play(midi)).toBe(false);
@@ -74,9 +98,8 @@ describe("note audio", () => {
     expect(await audio.play(69)).toBe(false);
     expect(await audio.play(69)).toBe(true);
     audio.dispose(); audio.dispose();
-    expect(tone.release).toHaveBeenCalled();
+    expect(tone.releaseAll).toHaveBeenCalled();
     expect(tone.dispose).toHaveBeenCalledOnce();
-    expect(tone.ampDispose).toHaveBeenCalledOnce();
     expect(await audio.play(69)).toBe(false);
   });
 });

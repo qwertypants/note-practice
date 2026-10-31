@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon.svg", "guitar/*.mp3"],
       manifest: {
         name: "Little Frets · Guitar note practice",
         short_name: "Little Frets",

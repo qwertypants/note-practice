@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answer, createRound, help, next } from "./game";
+import { answer, createRound, help, next, restoreRound, revisit } from "./game";
 import { LESSONS } from "./lessons";
 import { noteAt, positionsFor } from "./music";
 import { emptyProgress } from "./progress";
@@ -15,6 +15,32 @@ function round(): Round {
   };
 }
 describe("practice rounds", () => {
+  it("restores a partial lesson and revisits earlier answers without erasing later ones", () => {
+    const initial = createRound(lesson);
+    const first = initial.queue[0];
+    if (!first) throw new Error("Missing first question");
+    const firstAnswer = positionsFor(first, 0)[0];
+    if (!firstAnswer) throw new Error("Missing first answer");
+    let state = answer(initial, firstAnswer, emptyProgress());
+    state = next(state.round, state.progress);
+    const second = state.round.queue[1];
+    if (!second) throw new Error("Missing second question");
+    const secondAnswer = positionsFor(second, 0)[0];
+    if (!secondAnswer) throw new Error("Missing second answer");
+    state = answer(state.round, secondAnswer, state.progress);
+    const ids = state.round.queue.map((note) => note.id);
+    const restored = restoreRound(lesson, ids, state.round.answered ?? [], 1, state.round.cleanAnswers, state.round.bestStreak);
+    expect(restored?.status).toBe("correct");
+    expect(restored?.index).toBe(1);
+    if (!restored) throw new Error("Could not restore lesson");
+    const back = revisit(restored, 0);
+    expect(back.index).toBe(0);
+    expect(back.status).toBe("correct");
+    const forward = next(back, state.progress).round;
+    expect(forward.index).toBe(1);
+    expect(forward.status).toBe("correct");
+    expect(forward.answered).toEqual([true, true, false, false, false, false, false, false]);
+  });
   it("balances eight questions and includes every lesson note", () => {
     for (const lesson of LESSONS) {
       const queue = createRound(lesson).queue;

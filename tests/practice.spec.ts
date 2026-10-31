@@ -84,7 +84,7 @@ test("beginner recovers from a mistake, finishes eight questions, unlocks throug
   await page.getByRole("button", { name: /practice again/i }).click();
   await finishRound(page);
   await page.getByRole("button", { name: /practice again/i }).click();
-  await expect(page.getByText("name hint tucked away")).toBeVisible();
+  await expect(page.locator(".note-name")).toBeHidden();
   await expect(openString(page, 1)).toHaveText("·");
   await expect(openString(page, 2)).toHaveText("·");
   const saved = await page.evaluate(
@@ -202,7 +202,7 @@ test("fretted lesson accepts literal pitches with faded hints and help at 320px"
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
-  await expect(page.getByText("name hint tucked away")).toBeVisible();
+  await expect(page.locator(".note-name")).toBeHidden();
   const literalPositions: Record<
     string,
     { string: number; fret: number; written: string }
@@ -319,18 +319,19 @@ test("motion settles and changing the motion preference restores content", async
 test("note names need help, and mute survives reload", async ({ page }) => {
   await start(page);
   await expect(staff(page)).toHaveAttribute("aria-label", "Read this note on the treble staff");
-  await expect(page.locator(".note-name")).not.toHaveText(/^[EB]$/);
+  await expect(page.locator(".note-name")).toBeHidden();
   await expect(openString(page, 1)).toHaveText("·");
   await page.getByRole("button", { name: "A little help" }).click();
   await expect(staff(page)).toHaveAttribute("aria-label", /Treble staff showing/);
   await expect(page.getByRole("button", { name: "Sound on", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Sound on", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
+  await page.getByRole("button", { name: "A little help" }).click();
+  await expect(page.getByRole("button", { name: /play note [EB]/i })).toBeDisabled();
   await page.reload();
   await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: /let.s find a note/i }).click();
-  await expect(page.getByRole("button", { name: "Hear this note" })).toBeDisabled();
+  await page.getByRole("button", { name: "A little help" }).click();
+  await expect(page.getByRole("button", { name: /play note [EB]/i })).toBeDisabled();
 });
 
 test("unavailable audio leaves visual practice usable", async ({ page }) => {
@@ -338,7 +339,8 @@ test("unavailable audio leaves visual practice usable", async ({ page }) => {
     window.AudioContext.prototype.resume = () => Promise.reject(new Error("Audio unavailable"));
   });
   await start(page);
-  await page.getByRole("button", { name: "Hear this note" }).click();
+  await page.getByRole("button", { name: "A little help" }).click();
+  await page.getByRole("button", { name: /play note [EB]/i }).click();
   await expect(page.getByText(/sound is unavailable/i)).toBeVisible();
   await finishRound(page);
 });
@@ -359,7 +361,15 @@ test("audio plays only on request or a correct answer and respects mute", async 
   await start(page);
   expect(await starts()).toEqual([]);
   const string = await targetString(page);
-  await page.getByRole("button", { name: "Hear this note" }).click();
+  const samples = ["E2", "A2", "D3", "G3", "B3", "E4"].map((note) =>
+    page.waitForResponse((response) =>
+      response.url().endsWith(`/guitar/${note}.mp3`) && response.ok(),
+    ),
+  );
+  await page.getByRole("button", { name: "A little help" }).click();
+  await page.getByRole("button", { name: /play note [EB]/i }).click();
+  await Promise.all(samples);
+  await expect(page.getByText(/sound is unavailable/i)).toHaveCount(0);
   await expect.poll(async () => (await starts()).length).toBe(1);
   await openString(page, string === 1 ? 2 : 1).click();
   expect((await starts()).length).toBe(1);

@@ -1,8 +1,35 @@
-import type { Progress } from "./contracts";
+import type { LessonSession, Progress } from "./contracts";
 import { LESSONS } from "./lessons";
 export const STORAGE_KEY = "note-practice:progress:v1";
 export function emptyProgress(): Progress {
-  return { version: 1, mastery: {}, unlocked: 0, rounds: 0 };
+  return { version: 1, mastery: {}, unlocked: 0, rounds: 0, session: null };
+}
+function parseSession(value: unknown, unlocked: number): LessonSession | null {
+  if (typeof value !== "object" || value === null) return null;
+  const candidate = value as Partial<LessonSession>;
+  const lessonIndex = LESSONS.findIndex((lesson) => lesson.id === candidate.lessonId);
+  const lesson = LESSONS[lessonIndex];
+  if (
+    !lesson || lessonIndex > unlocked || !Array.isArray(candidate.queue) ||
+    candidate.queue.length !== 8 || !Array.isArray(candidate.answered) ||
+    candidate.answered.length !== 8 ||
+    !candidate.queue.every((id) => typeof id === "string" && lesson.notes.some((note) => note.id === id)) ||
+    !candidate.answered.every((answered) => typeof answered === "boolean") ||
+    typeof candidate.index !== "number" || !Number.isInteger(candidate.index) ||
+    candidate.index < 0 || candidate.index > 7 ||
+    typeof candidate.cleanAnswers !== "number" || !Number.isInteger(candidate.cleanAnswers) ||
+    candidate.cleanAnswers < 0 || candidate.cleanAnswers > 8 ||
+    typeof candidate.bestStreak !== "number" || !Number.isInteger(candidate.bestStreak) ||
+    candidate.bestStreak < 0 || candidate.bestStreak > candidate.cleanAnswers
+  ) return null;
+  return {
+    lessonId: lesson.id,
+    queue: candidate.queue as string[],
+    answered: candidate.answered as boolean[],
+    index: candidate.index,
+    cleanAnswers: candidate.cleanAnswers,
+    bestStreak: candidate.bestStreak,
+  };
 }
 function parse(value: unknown): Progress {
   const result = emptyProgress();
@@ -48,6 +75,7 @@ function parse(value: unknown): Progress {
         result.mastery[id] = Math.max(0, Math.min(3, Math.floor(count)));
     }
   }
+  result.session = parseSession("session" in value ? value.session : null, result.unlocked);
   return result;
 }
 export function loadProgress(): { progress: Progress; persistent: boolean } {

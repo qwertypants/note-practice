@@ -29,7 +29,22 @@ describe("saved progress", () => {
       mastery: { E4: 2 },
       unlocked: 1,
       rounds: 4,
+      session: null,
     });
+  });
+  it("persists a valid in-progress lesson and discards malformed sessions", () => {
+    const session = {
+      lessonId: "open-2",
+      queue: ["E4", "B3", "E4", "B3", "E4", "B3", "E4", "B3"],
+      answered: [true, true, false, false, false, false, false, false],
+      index: 2,
+      cleanAnswers: 2,
+      bestStreak: 2,
+    };
+    storage(JSON.stringify({ version: 1, unlocked: 0, session }));
+    expect(loadProgress().progress.session).toEqual(session);
+    storage(JSON.stringify({ version: 1, unlocked: 0, session: { ...session, index: 8 } }));
+    expect(loadProgress().progress.session).toBeNull();
   });
   it("validates unknown shape and bounds values", () => {
     storage(

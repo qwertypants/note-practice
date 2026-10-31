@@ -420,6 +420,20 @@ a {
   flex: 1;
   padding-right: 19px;
 }
+.note-name-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.note-name-button:hover:not(:disabled) { color: var(--accent); }
+.note-name-button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.note-name-button:disabled { cursor: default; opacity: 0.7; }
+.note-name-button.name-hidden { visibility: hidden; }
 .note-name small {
   display: block;
   font-family: "DM Sans", sans-serif;
@@ -428,12 +442,6 @@ a {
   color: var(--muted);
   margin-top: 10px;
   letter-spacing: 0.2px;
-}
-.note-name.name-hidden {
-  font:
-    italic 1rem/1.6 Georgia,
-    serif;
-  color: var(--muted);
 }
 .neck-label {
   display: flex;
@@ -592,6 +600,28 @@ a {
   align-items: center;
   gap: 13px;
 }
+.question-nav {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.question-nav button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.question-nav button:not(:disabled) { cursor: pointer; }
+.question-nav button.current {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.question-nav button:disabled:not(.current) { opacity: 0.4; }
 .help-button {
   min-height: 47px;
   background: var(--surface);
@@ -1045,8 +1075,6 @@ footer span {
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 .audio-status { font-size: 1rem; min-height: 1.2em; }
-.hear-note { margin-top: 8px; }
-.hear-note:disabled { opacity: 0.55; cursor: default; }
 .review-entry { margin-top: 20px; }
 .review-entry p { font-size: 1rem; line-height: 1.5; }
 @media (max-width: 480px) {

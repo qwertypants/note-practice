@@ -19,6 +19,7 @@ export function createRound(lesson: Lesson): Round {
     lessonId: lesson.id,
     maxFret: lesson.maxFret,
     queue,
+    answered: Array(8).fill(false),
     index: 0,
     status: "asking",
     assisted: false,
@@ -111,6 +112,9 @@ export function answer(
     round: {
       ...round,
       status: "correct",
+      answered: round.mode === "lesson"
+        ? (round.answered ?? Array(round.queue.length).fill(false)).map((item, index) => index === round.index ? true : item)
+        : undefined,
       streak,
       bestStreak: Math.max(round.bestStreak, streak),
       cleanAnswers: round.cleanAnswers + Number(clean),
@@ -133,11 +137,57 @@ export function next(
     round: {
       ...round,
       index: round.index + 1,
-      status: "asking",
+      status: round.mode === "lesson" && round.answered?.[round.index + 1] ? "correct" : "asking",
       assisted: false,
       mistakes: 0,
-      feedback: "",
+      feedback: round.mode === "lesson" && round.answered?.[round.index + 1] ? "You found this note already." : "",
     },
     progress,
+  };
+}
+
+export function revisit(round: Round, index: number): Round {
+  if (round.mode !== "lesson" || round.status === "complete" ||
+      !Number.isInteger(index) || index < 0 || index >= round.queue.length || index === round.index ||
+      !round.answered?.[index])
+    return round;
+  const answered = round.answered[index] === true;
+  return {
+    ...round,
+    index,
+    status: answered ? "correct" : "asking",
+    assisted: false,
+    mistakes: 0,
+    streak: 0,
+    feedback: answered ? "You found this note already." : "Take another look at this note.",
+  };
+}
+
+export function restoreRound(
+  lesson: Lesson,
+  queueIds: string[],
+  answered: boolean[],
+  index: number,
+  cleanAnswers: number,
+  bestStreak: number,
+): Round | null {
+  if (queueIds.length !== 8 || answered.length !== 8 || index < 0 || index > 7) return null;
+  const queue = queueIds.map((id) => lesson.notes.find((note) => note.id === id));
+  if (queue.some((note) => !note)) return null;
+  const isAnswered = answered[index] === true;
+  return {
+    mode: "lesson",
+    lessonId: lesson.id,
+    maxFret: lesson.maxFret,
+    queue: queue as Note[],
+    index,
+    status: isAnswered ? "correct" : "asking",
+    answered,
+    assisted: false,
+    mistakes: 0,
+    streak: 0,
+    cleanAnswers,
+    bestStreak,
+    feedback: isAnswered ? "You found this note already." : "",
   };
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Position, Round } from "./contracts";
 import { LESSONS } from "./lessons";
 import { STRINGS } from "./music";
-import { answer, createRound, help, next } from "./game";
+import { answer, createRound, help, next, restoreRound, revisit } from "./game";
 import { createNoteAudio, loadMuted, saveMuted, type NoteAudio } from "./audio";
 import { canReview, createReviewRound } from "./review";
 import { loadProgress, saveProgress } from "./progress";
@@ -48,8 +48,17 @@ export default function App() {
   const [loaded] = useState(loadProgress);
   const [progress, setProgress] = useState(loaded.progress);
   const [persistent, setPersistent] = useState(loaded.persistent);
-  const [lessonIndex, setLessonIndex] = useState(0);
-  const [round, setRound] = useState<Round | null>(null);
+  const [lessonIndex, setLessonIndex] = useState(() => {
+    const saved = loaded.progress.session;
+    return Math.max(0, LESSONS.findIndex((item) => item.id === saved?.lessonId));
+  });
+  const [round, setRound] = useState<Round | null>(() => {
+    const saved = loaded.progress.session;
+    const lesson = LESSONS.find((item) => item.id === saved?.lessonId);
+    return lesson && saved
+      ? restoreRound(lesson, saved.queue, saved.answered, saved.index, saved.cleanAnswers, saved.bestStreak)
+      : null;
+  });
   const [guide, setGuide] = useState(false);
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
@@ -98,7 +107,22 @@ export default function App() {
   function apply(result: ReturnType<typeof answer>) {
     setRound(result.round);
     setProgress(result.progress);
-    setPersistent(saveProgress(result.progress));
+    persistRound(result.round, result.progress);
+  }
+  function persistRound(nextRound: Round | null, currentProgress: typeof progress) {
+    const session = nextRound?.mode === "lesson" && nextRound.status !== "complete"
+      ? {
+          lessonId: nextRound.lessonId,
+          queue: nextRound.queue.map((note) => note.id),
+          answered: nextRound.answered ?? Array(8).fill(false),
+          index: nextRound.index,
+          cleanAnswers: nextRound.cleanAnswers,
+          bestStreak: nextRound.bestStreak,
+        }
+      : null;
+    const updated = { ...currentProgress, session };
+    setProgress(updated);
+    setPersistent(saveProgress(updated));
   }
   function scrollToTop() {
     quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -109,7 +133,13 @@ export default function App() {
     const selected = LESSONS[index];
     if (selected) {
       setLessonIndex(index);
-      setRound(createRound(selected));
+      const savedSession = progress.session?.lessonId === selected.id ? progress.session : null;
+      const nextRound = savedSession
+        ? restoreRound(selected, savedSession.queue, savedSession.answered, savedSession.index, savedSession.cleanAnswers, savedSession.bestStreak)
+        : null;
+      const activeRound = nextRound ?? createRound(selected);
+      setRound(activeRound);
+      persistRound(activeRound, progress);
       setGuide(false);
       requestAnimationFrame(scrollToTop);
     }
@@ -118,7 +148,8 @@ export default function App() {
     if (!canReview(progress)) return;
     stopAudio();
     setHelpRequested(false);
-    setRound(createReviewRound(progress));
+    const review = createReviewRound(progress);
+    setRound(review);
     setGuide(false);
     requestAnimationFrame(scrollToTop);
   }
@@ -189,7 +220,7 @@ export default function App() {
                 </span>
                 <span>
                   <b>{item.title}</b>
-                  <small>{item.subtitle}</small>
+                  <small>{progress.session?.lessonId === item.id ? "Continue where you left off" : item.subtitle}</small>
                 </span>
                 <span className="lesson-arrow">
                   {index > progress.unlocked ? "Locked" : "↗"}
@@ -386,20 +417,18 @@ export default function App() {
               </div>
               <div className="staff-card">
                 <Staff note={target} reveal={revealed} />
-                <div
-                  className={`note-name ${revealed ? "" : "name-hidden"}`}
+                <button
+                  className={`note-name note-name-button${revealed ? "" : " name-hidden"}`}
+                  type="button"
+                  aria-label={`Play note ${target.name}`}
+                  aria-hidden={!revealed}
+                  disabled={!revealed || muted}
+                  onClick={() => void hear(target.midi)}
                 >
-                  {revealed
-                    ? target.name
-                    : "Your eyes have got this"}
-                  <small>
-                    {revealed ? "note name" : "name hint tucked away"}
-                  </small>
-                </div>
+                  {target.name}
+                  <small aria-hidden="true">{muted ? "🔇" : "🔊"}</small>
+                </button>
               </div>
-              <button className="help-button hear-note" disabled={muted} onClick={() => void hear(target.midi)}>
-                Hear this note
-              </button>
               <p className="audio-status" role="status">{audioMessage}</p>
               <div className="neck-label">
                 <b>Your guitar neck</b>
@@ -423,6 +452,27 @@ export default function App() {
                   <span className="streak">{round.streak} in a row ✦</span>
                 )}
               </div>
+              {round.mode === "lesson" && round.answered && (
+                <nav className="question-nav" aria-label="Answered questions">
+                  {round.answered.map((answered, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className={index === round.index ? "current" : ""}
+                      disabled={!answered || index === round.index}
+                      aria-label={`Question ${index + 1}${answered ? ", answered" : ", unanswered"}`}
+                      aria-current={index === round.index ? "step" : undefined}
+                      onClick={() => {
+                        stopAudio();
+                        setHelpRequested(false);
+                        const changed = revisit(round, index);
+                        setRound(changed);
+                        persistRound(changed, progress);
+                      }}
+                    >{index + 1}</button>
+                  ))}
+                </nav>
+              )}
               <div className="game-actions">
                 {round.status === "correct" ? (
                   <button

@@ -1,3 +1,5 @@
+import { Sampler, start, now } from "tone";
+
 export interface NoteAudio {
   play(midi: number): Promise<boolean>;
   stop(): void;
@@ -24,8 +26,8 @@ export function saveMuted(muted: boolean): boolean {
 }
 
 export function createNoteAudio(): NoteAudio {
-  let synth: PluckSynth | undefined;
-  let amp: Distortion | undefined;
+  let sampler: Sampler | undefined;
+  let samplerReady: Promise<void> | undefined;
   let disposed = false;
   let cancelPending: (() => void) | undefined;
   let releaseVoice: (() => void) | undefined;
@@ -35,6 +37,22 @@ export function createNoteAudio(): NoteAudio {
     cancelPending = undefined;
     releaseVoice?.();
     releaseVoice = undefined;
+  }
+
+  function loadGuitar() {
+    if (!samplerReady) {
+      samplerReady = new Promise<void>((resolve, reject) => {
+        sampler = new Sampler({
+          urls: { 40: "E2.mp3", 45: "A2.mp3", 50: "D3.mp3", 55: "G3.mp3", 59: "B3.mp3", 64: "E4.mp3" },
+          baseUrl: `${import.meta.env.BASE_URL}guitar/`,
+          attack: 0,
+          release: 0.06,
+          onload: resolve,
+          onerror: reject,
+        }).toDestination();
+      });
+    }
+    return samplerReady;
   }
 
   return {
@@ -56,25 +74,23 @@ export function createNoteAudio(): NoteAudio {
           cancellation,
         ]);
         if (!started || cancelled || disposed) return false;
-        if (!synth) {
-          amp = new Distortion({ distortion: 0.12, wet: 0.25 }).toDestination();
-          synth = new PluckSynth({
-            attackNoise: 0.45,
-            dampening: 2600,
-            resonance: 0.88,
-            release: 0.7,
-          }).connect(amp);
-        }
+        const loaded = await Promise.race([loadGuitar().then(() => true), cancellation]);
+        if (!loaded || cancelled || disposed) return false;
         const time = now();
-        synth.triggerAttack(440 * 2 ** ((midi - 69) / 12), time);
+        sampler?.triggerAttack(440 * 2 ** ((midi - 69) / 12), time);
         cleanup = () => {
-          synth?.triggerRelease(now());
+          sampler?.releaseAll(now());
           if (releaseVoice === cleanup) releaseVoice = undefined;
         };
         releaseVoice = cleanup;
         return true;
       } catch {
         cleanup?.();
+        if (!sampler?.loaded) {
+          sampler?.dispose();
+          sampler = undefined;
+          samplerReady = undefined;
+        }
         return false;
       } finally {
         if (!cancelled) cancelPending = undefined;
@@ -85,11 +101,9 @@ export function createNoteAudio(): NoteAudio {
       if (disposed) return;
       disposed = true;
       stop();
-      synth?.dispose();
-      amp?.dispose();
-      synth = undefined;
-      amp = undefined;
+      sampler?.dispose();
+      sampler = undefined;
+      samplerReady = undefined;
     },
   };
 }
-import { Distortion, PluckSynth, start, now } from "tone";

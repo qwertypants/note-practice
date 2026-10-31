@@ -22,6 +22,15 @@ export interface Progress {
   mastery: Record<string, number>;
   unlocked: number;
   rounds: number;
+  session?: LessonSession | null;
+}
+export interface LessonSession {
+  lessonId: string;
+  queue: string[];
+  answered: boolean[];
+  index: number;
+  cleanAnswers: number;
+  bestStreak: number;
 }
 export type Round = (
   | { mode: "lesson"; lessonId: string }
@@ -29,6 +38,7 @@ export type Round = (
 ) & {
   maxFret: number;
   queue: Note[];
+  answered?: boolean[];
   index: number;
   status: "asking" | "correct" | "complete";
   assisted: boolean;
