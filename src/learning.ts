@@ -1,12 +1,12 @@
 import type { Progress } from "./contracts";
-import type { Activity, LearningHistory, LearningOutcome, LearningRecord, LearningSkill } from "./learning-contracts";
+import type { Activity, LearningHistory, LearningOutcome, LearningRecord } from "./learning-contracts";
 import { unlockedNotes } from "./review";
 
 const DAY = 24 * 60 * 60 * 1000;
 const INTERVAL_DAYS = [0, 1, 3, 7, 14, 30];
 
 function recordFor(history: LearningHistory, outcome: LearningOutcome): LearningRecord | undefined {
-  return history[outcome.skill]?.[outcome.noteId];
+  return history[outcome.noteId];
 }
 
 export function retentionDays(history: LearningHistory, outcome: LearningOutcome): number {
@@ -45,15 +45,12 @@ export function recordOutcome(history: LearningHistory, outcome: LearningOutcome
       lastSessionId: outcome.sessionId,
     };
   }
-  return {
-    ...history,
-    [outcome.skill]: { ...history[outcome.skill], [outcome.noteId]: record },
-  };
+  return { ...history, [outcome.noteId]: record };
 }
 
-export function dailyDueCount(progress: Progress, now: number, skill: LearningSkill = "fretboard"): number {
+export function dailyDueCount(progress: Progress, now: number): number {
   if (!Number.isFinite(now)) return 0;
-  const records = progress.learning?.[skill] ?? {};
+  const records = progress.learning ?? {};
   return unlockedNotes(progress).filter(({ note }) => {
     const record = records[note.id];
     return record && Number.isFinite(record.dueAt) && record.dueAt <= now;
@@ -64,23 +61,20 @@ export function createDailyActivity(
   progress: Progress,
   now: number,
   sessionId: string,
-  skill: LearningSkill = "fretboard",
 ): Activity | null {
   if (!Number.isFinite(now) || !sessionId) return null;
   const unlocked = unlockedNotes(progress);
   if (!unlocked.some(({ note }) => Object.hasOwn(progress.mastery, note.id) ||
-      Object.hasOwn(progress.learning?.[skill] ?? {}, note.id))) return null;
-  const records = progress.learning?.[skill] ?? {};
+      Object.hasOwn(progress.learning ?? {}, note.id))) return null;
+  const records = progress.learning ?? {};
   const selected = unlocked.sort((a, b) => {
     const aRecord = records[a.note.id];
     const bRecord = records[b.note.id];
     const rank = (record: LearningRecord | undefined, id: string) => {
       if (record && record.dueAt <= now) return 0;
-      const hasMastery = skill === "fretboard" && Object.hasOwn(progress.mastery, id);
+      const hasMastery = Object.hasOwn(progress.mastery, id);
       if (!record && !hasMastery) return 3;
-      const weak = skill === "pitch"
-        ? (record?.stage ?? 3) < 3
-        : (hasMastery && progress.mastery[id] < 3) || (record?.stage ?? 3) < 3;
+      const weak = (hasMastery && progress.mastery[id] < 3) || (record?.stage ?? 3) < 3;
       return weak ? 1 : 2;
     };
     const rankDifference = rank(aRecord, a.note.id) - rank(bRecord, b.note.id);
@@ -90,7 +84,7 @@ export function createDailyActivity(
     if (aRecord && bRecord && aRecord.stage !== bRecord.stage)
       return aRecord.stage - bRecord.stage;
     const masteryDifference = (progress.mastery[a.note.id] ?? 0) - (progress.mastery[b.note.id] ?? 0);
-    return skill === "fretboard" && rank(aRecord, a.note.id) === 1 && masteryDifference
+    return rank(aRecord, a.note.id) === 1 && masteryDifference
       ? masteryDifference : a.note.id.localeCompare(b.note.id);
   }).slice(0, 8);
   const notes = Array.from({ length: 8 }, (_, index) => selected[index % selected.length].note);
@@ -98,7 +92,7 @@ export function createDailyActivity(
     kind: "daily", sessionId, melodyId: null, notes,
     maxFret: Math.max(...selected.map(({ maxFret }) => maxFret)),
     index: 0, answered: Array(8).fill(false), assisted: Array(8).fill(false),
-    mistakes: Array(8).fill(false), skill, retentionDays: 0,
+    mistakes: Array(8).fill(false), retentionDays: 0,
     status: "asking", feedback: "",
   };
 }
