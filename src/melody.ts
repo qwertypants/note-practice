@@ -1,10 +1,9 @@
-import type { Activity, LearningSkill, Melody } from "./learning-contracts";
+import type { Activity, Melody } from "./learning-contracts";
 import { melodyNotes } from "./melodies";
 
 export function createMelodyActivity(
   melody: Melody,
   sessionId: string,
-  skill: LearningSkill = "fretboard",
 ): Activity {
   const notes = melodyNotes(melody);
   if (notes.length === 0) throw new Error("A melody needs at least one note");
@@ -18,7 +17,6 @@ export function createMelodyActivity(
     answered: notes.map(() => false),
     assisted: notes.map(() => false),
     mistakes: notes.map(() => false),
-    skill,
     retentionDays: 0,
     status: "asking",
     feedback: "Read the marked note and play at your own pace.",

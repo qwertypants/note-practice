@@ -1,5 +1,6 @@
 import type { LessonSession, Progress } from "./contracts";
 import { LESSONS } from "./lessons";
+import { parseLearning, parseSavedActivity } from "./learning-storage";
 export const STORAGE_KEY = "note-practice:progress:v1";
 export function emptyProgress(): Progress {
   return { version: 1, mastery: {}, unlocked: 0, rounds: 0, session: null };
@@ -76,6 +77,9 @@ function parse(value: unknown): Progress {
     }
   }
   result.session = parseSession("session" in value ? value.session : null, result.unlocked);
+  const learning = parseLearning("learning" in value ? value.learning : undefined);
+  if (learning) result.learning = learning;
+  if ("activity" in value) result.activity = parseSavedActivity(value.activity, result.unlocked);
   return result;
 }
 export function loadProgress(): { progress: Progress; persistent: boolean } {

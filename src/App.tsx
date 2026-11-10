@@ -9,6 +9,13 @@ import { loadProgress, saveProgress } from "./progress";
 import { Staff } from "./components/Staff";
 import { Neck } from "./components/Neck";
 import { usePracticeMotion } from "./usePracticeMotion";
+import type { Activity, Melody } from "./learning-contracts";
+import { restoreActivity, saveActivity } from "./activity";
+import { createDailyActivity, recordOutcome } from "./learning";
+import { createMelodyActivity } from "./melody";
+import { DailyPracticePanel } from "./components/DailyPracticePanel";
+import { MelodyChallengePanel } from "./components/MelodyChallengePanel";
+import { LearningPractice } from "./components/LearningPractice";
 import "./styles.css";
 
 function Sun({ small = false }: { small?: boolean }) {
@@ -59,6 +66,8 @@ export default function App() {
       ? restoreRound(lesson, saved.queue, saved.answered, saved.index, saved.cleanAnswers, saved.bestStreak)
       : null;
   });
+  const [activity, setActivity] = useState(() => restoreActivity(loaded.progress.activity));
+  const lessonSessionId = useRef(crypto.randomUUID());
   const [guide, setGuide] = useState(false);
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
@@ -101,13 +110,26 @@ export default function App() {
   }
   const lesson = LESSONS[lessonIndex];
   const target = round?.queue[round.index];
-  const showGuide = guide || !round;
+  const showGuide = guide || (!round && !activity);
   const motionScope = usePracticeMotion(showGuide, round);
   if (!lesson) return <p>Lessons are getting ready.</p>;
   function apply(result: ReturnType<typeof answer>) {
     setRound(result.round);
-    setProgress(result.progress);
-    persistRound(result.round, result.progress);
+    let updated = result.progress;
+    if (round?.status === "asking" && result.round.status === "correct" && target) {
+      updated = {...updated, learning: recordOutcome(updated.learning ?? {}, {
+        noteId: target.id, sessionId: lessonSessionId.current,
+        clean: !round.assisted && round.mistakes === 0, now: Date.now(),
+      })};
+    }
+    if (round?.status === "asking" && target && result.round.status === "asking" &&
+      (result.round.mistakes > round.mistakes || (!round.assisted && result.round.assisted))) {
+      updated = {...updated, learning: recordOutcome(updated.learning ?? {}, {
+        noteId: target.id, sessionId: lessonSessionId.current, clean: false, now: Date.now(),
+      })};
+    }
+    setProgress(updated);
+    persistRound(result.round, updated);
   }
   function persistRound(nextRound: Round | null, currentProgress: typeof progress) {
     const session = nextRound?.mode === "lesson" && nextRound.status !== "complete"
@@ -120,7 +142,7 @@ export default function App() {
           bestStreak: nextRound.bestStreak,
         }
       : null;
-    const updated = { ...currentProgress, session };
+    const updated = { ...currentProgress, session, activity: null };
     setProgress(updated);
     setPersistent(saveProgress(updated));
   }
@@ -129,6 +151,8 @@ export default function App() {
   }
   function start(index: number) {
     stopAudio();
+    setActivity(null);
+    lessonSessionId.current = crypto.randomUUID();
     setHelpRequested(false);
     const selected = LESSONS[index];
     if (selected) {
@@ -148,10 +172,34 @@ export default function App() {
     if (!canReview(progress)) return;
     stopAudio();
     setHelpRequested(false);
+    setActivity(null);
+    lessonSessionId.current = crypto.randomUUID();
     const review = createReviewRound(progress);
     setRound(review);
+    persistRound(review, progress);
     setGuide(false);
     requestAnimationFrame(scrollToTop);
+  }
+  function updateActivity(current: Activity, nextProgress: typeof progress) {
+    setActivity(current);
+    const updated = {...nextProgress, activity: saveActivity(current)};
+    setProgress(updated);
+    setPersistent(saveProgress(updated));
+  }
+  function enterActivity(current: Activity | null) {
+    if (!current) return;
+    stopAudio();
+    setRound(null);
+    setActivity(current);
+    setGuide(false);
+    updateActivity(current, progress);
+    requestAnimationFrame(() => document.querySelector(".learning-practice")?.scrollIntoView({behavior: "smooth", block: "start"}));
+  }
+  function startDaily() { enterActivity(createDailyActivity(progress, Date.now(), crypto.randomUUID())); }
+  function startMelody(melody: Melody) { enterActivity(createMelodyActivity(melody, crypto.randomUUID())); }
+  function backToLessons() {
+    setActivity(null);
+    setGuide(true);
   }
   const reviewing = round?.mode === "review";
   const unlockedNotes = LESSONS.slice(0, progress.unlocked + 1).flatMap((item) => item.notes);
@@ -205,6 +253,8 @@ export default function App() {
             <br />
             Your own kind of progress.
           </p>
+          <DailyPracticePanel progress={progress} now={Date.now()} onStart={startDaily}
+            onResume={() => enterActivity(restoreActivity(progress.activity))} />
           <div className="lesson-list" aria-label="Lessons">
             {LESSONS.map((item, index) => (
               <button
@@ -234,6 +284,8 @@ export default function App() {
             </button>
             {!canReview(progress) && <p>Try a note in a lesson to unlock personalized review.</p>}
           </div>
+          <MelodyChallengePanel progress={progress} onStart={startMelody}
+            onResume={() => enterActivity(restoreActivity(progress.activity))} />
           <div className="save-note">
             <span>◌</span>
             <p>
@@ -334,6 +386,9 @@ export default function App() {
                 No timer. No lives. All the room to learn.
               </p>
             </section>
+          ) : activity ? (
+            <LearningPractice key={activity.sessionId} activity={activity} progress={progress} muted={muted}
+              onChange={updateActivity} onBack={backToLessons} />
           ) : round?.status === "complete" ? (
             <section className="summary">
               <Sun />

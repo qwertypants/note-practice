@@ -1,6 +1,5 @@
 import type { Note } from "./contracts";
 
-export type LearningSkill = "fretboard" | "pitch";
 export interface LearningRecord {
   lastAttemptAt: number;
   lastSuccessAt: number | null;
@@ -8,10 +7,9 @@ export interface LearningRecord {
   stage: number;
   lastSessionId: string;
 }
-export type LearningHistory = Partial<Record<LearningSkill, Record<string, LearningRecord>>>;
+export type LearningHistory = Record<string, LearningRecord>;
 export interface LearningOutcome {
   noteId: string;
-  skill: LearningSkill;
   sessionId: string;
   clean: boolean;
   now: number;
@@ -26,7 +24,6 @@ export interface SavedActivity {
   answered: boolean[];
   assisted: boolean[];
   mistakes: boolean[];
-  skill: LearningSkill;
   retentionDays: number;
 }
 export interface Activity extends Omit<SavedActivity, "noteIds"> {
@@ -39,21 +36,4 @@ export interface Melody {
   title: string;
   noteIds: string[];
   maxFret: number;
-}
-export interface PitchEstimate {
-  midi: number;
-  cents: number;
-  confidence: number;
-}
-export type GuitarInputState = "idle" | "requesting" | "listening" | "unavailable";
-export interface GuitarInput {
-  start(): Promise<void>;
-  stop(): void;
-  setTarget(midi: number, itemId: string): void;
-  setSuppressed(suppressed: boolean): void;
-  dispose(): void;
-}
-export interface GuitarInputOptions {
-  onPitch(midi: number, itemId: string): void;
-  onState(state: GuitarInputState): void;
 }

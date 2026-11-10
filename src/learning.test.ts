@@ -25,6 +25,19 @@ describe("learning schedule", () => {
     expect(history.E4.dueAt).toBe((history.E4.lastSuccessAt ?? 0) + 30 * DAY);
   });
 
+  it("records an early successful recall without advancing the interval", () => {
+    const first = recordOutcome({}, outcome(0, "one"));
+    const early = recordOutcome(first, outcome(DAY / 2, "early"));
+    expect(early.E4).toMatchObject({stage: 1, dueAt: DAY, lastSuccessAt: DAY / 2});
+    expect(retentionDays(early, outcome(DAY, "later"))).toBe(0);
+  });
+
+  it("keeps a failure's due date fixed when the same session retries or uses Help", () => {
+    const failed = recordOutcome({}, outcome(DAY, "one", false));
+    expect(recordOutcome(failed, outcome(DAY + 1000, "one", false))).toBe(failed);
+    expect(failed.E4.dueAt).toBe(2 * DAY);
+  });
+
   it("resets on errors, keeps prior success, and rejects clock rollback credit", () => {
     const first = recordOutcome({}, outcome(2 * DAY, "one"));
     const failed = recordOutcome(first, outcome(3 * DAY, "two", false));

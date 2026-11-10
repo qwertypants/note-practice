@@ -2,6 +2,7 @@ import { Sampler, start, now } from "tone";
 
 export interface NoteAudio {
   play(midi: number): Promise<boolean>;
+  playPhrase(midis: number[]): Promise<boolean>;
   stop(): void;
   dispose(): void;
 }
@@ -32,11 +33,21 @@ export function createNoteAudio(): NoteAudio {
   let cancelPending: (() => void) | undefined;
   let releaseVoice: (() => void) | undefined;
 
-  function stop() {
+  let sequenceVersion = 0;
+  let cancelWait: (() => void) | undefined;
+
+  function stopVoice() {
     cancelPending?.();
     cancelPending = undefined;
     releaseVoice?.();
     releaseVoice = undefined;
+  }
+
+  function stop() {
+    sequenceVersion++;
+    cancelWait?.();
+    cancelWait = undefined;
+    stopVoice();
   }
 
   function loadGuitar() {
@@ -55,9 +66,8 @@ export function createNoteAudio(): NoteAudio {
     return samplerReady;
   }
 
-  return {
-    async play(midi) {
-      stop();
+  async function playNote(midi: number): Promise<boolean> {
+      stopVoice();
       if (disposed || !Number.isFinite(midi) || midi < 0 || midi > 127)
         return false;
       let cancelled = false;
@@ -95,6 +105,27 @@ export function createNoteAudio(): NoteAudio {
       } finally {
         if (!cancelled) cancelPending = undefined;
       }
+  }
+  return {
+    play(midi) {
+      stop();
+      return playNote(midi);
+    },
+    async playPhrase(midis) {
+      stop();
+      if (!midis.length || midis.some(midi => !Number.isFinite(midi) || midi < 0 || midi > 127)) return false;
+      const version = sequenceVersion;
+      for (const midi of midis) {
+        if (version !== sequenceVersion || disposed || !await playNote(midi)) return false;
+        if (version !== sequenceVersion || disposed) return false;
+        const finished = await new Promise<boolean>(resolve => {
+          const timer = setTimeout(() => { cancelWait = undefined; resolve(true); }, 600);
+          cancelWait = () => { clearTimeout(timer); resolve(false); };
+        });
+        if (!finished || version !== sequenceVersion || disposed) return false;
+        stopVoice();
+      }
+      return true;
     },
     stop,
     dispose() {

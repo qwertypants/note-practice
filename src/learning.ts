@@ -24,6 +24,7 @@ export function recordOutcome(history: LearningHistory, outcome: LearningOutcome
   const lastAttemptAt = Math.max(outcome.now, previous?.lastAttemptAt ?? outcome.now);
   let record: LearningRecord;
   if (!outcome.clean) {
+    if (previous?.lastSessionId === outcome.sessionId && previous.stage === 0) return history;
     record = {
       lastAttemptAt,
       lastSuccessAt: previous?.lastSuccessAt ?? null,
@@ -39,7 +40,7 @@ export function recordOutcome(history: LearningHistory, outcome: LearningOutcome
     const stage = canAdvance ? Math.min(5, (previous?.stage ?? 0) + 1) : (previous?.stage ?? 0);
     record = {
       lastAttemptAt,
-      lastSuccessAt: canAdvance ? outcome.now : (previous?.lastSuccessAt ?? null),
+      lastSuccessAt: Math.max(outcome.now, previous?.lastSuccessAt ?? outcome.now),
       dueAt: canAdvance ? outcome.now + INTERVAL_DAYS[stage] * DAY : (previous?.dueAt ?? outcome.now + DAY),
       stage,
       lastSessionId: outcome.sessionId,

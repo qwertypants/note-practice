@@ -90,3 +90,21 @@ describe("saved progress", () => {
     expect(loadProgress().persistent).toBe(false);
   });
 });
+
+describe("compatible learning extensions", () => {
+  it("round trips new fields while leaving legacy progress intact", () => {
+    storage(null);
+    const progress = {version: 1 as const, mastery: {E4: 2}, unlocked: 1, rounds: 4,
+      learning: {E4: {lastAttemptAt: 1000, lastSuccessAt: 1000, dueAt: 86401000, stage: 1, lastSessionId: "one"}}};
+    expect(saveProgress(progress)).toBe(true);
+    expect(loadProgress().progress).toEqual({...progress, session: null});
+    // The prior reader reads these same fields and ignores the additive extension.
+    const legacy = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect([legacy.version, legacy.mastery, legacy.unlocked, legacy.rounds]).toEqual([1, {E4: 2}, 1, 4]);
+  });
+  it("discards corrupt optional extensions without erasing lesson progress", () => {
+    storage(JSON.stringify({version: 1, mastery: {B3: 3}, unlocked: 2, rounds: 7,
+      learning: "invalid", activity: {kind: "melody", noteIds: ["BAD"]}}));
+    expect(loadProgress().progress).toEqual({version: 1, mastery: {B3: 3}, unlocked: 2, rounds: 7, session: null, activity: null});
+  });
+});

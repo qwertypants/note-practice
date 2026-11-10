@@ -35,7 +35,15 @@ npm run test:e2e
 - Mastering a lesson unlocks the next one. Earlier lessons remain available and unlocked lessons stay unlocked.
 - Progress stays in this browser's local storage. Clearing browser data removes it; private browsing may discard it. If storage is blocked, you can still play for the current session.
 
-The game teaches pitch recognition and fretboard familiarity. Rhythm, chords, accidentals, microphone input, and instrument performance are outside this first version.
+## Daily practice and melodies
+
+Today's practice builds an eight-note review from overdue and weak notes you have already encountered. Successful recall across separate sessions schedules notes after 1, 3, 7, 14, and 30 days. Repetition within one session does not advance multiple stages. Mistakes and Help bring a note back for earlier review.
+
+Melody challenges show an original short phrase on the staff. Read the marked note and tap its position on the neck, one note at a time. Six phrases become available as their notes unlock in lessons. Optional playback lets you hear the phrase; preview and Help mark affected answers as assisted. Neither daily practice nor melody completion unlocks lessons.
+
+Both modes save your place, including Help and already answered notes. Progress stays in this browser, and tap practice remains available when storage or sound is unavailable. **No instrument or microphone is needed.**
+
+The game teaches pitch recognition and fretboard familiarity. Rhythm grading, chords, accidentals, microphone input, and instrument performance are outside scope.
 
 ## Music conventions
 

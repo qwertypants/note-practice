@@ -103,3 +103,34 @@ describe("note audio", () => {
     expect(await audio.play(69)).toBe(false);
   });
 });
+
+describe("phrase playback", () => {
+  it("spaces notes, stops the last voice, and resolves on completion", async () => {
+    vi.useFakeTimers();
+    try {
+      const player = createNoteAudio();
+      const playing = player.playPhrase([64, 59]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(tone.attack).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(tone.attack).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(await playing).toBe(true);
+      expect(tone.releaseAll).toHaveBeenCalledTimes(2);
+      player.dispose();
+    } finally { vi.useRealTimers(); }
+  });
+  it("cancels the sequence during the gap without any later note", async () => {
+    vi.useFakeTimers();
+    try {
+      const player = createNoteAudio();
+      const playing = player.playPhrase([64, 59]);
+      await vi.advanceTimersByTimeAsync(0);
+      player.stop();
+      expect(await playing).toBe(false);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(tone.attack).toHaveBeenCalledTimes(1);
+      player.dispose();
+    } finally { vi.useRealTimers(); }
+  });
+});
