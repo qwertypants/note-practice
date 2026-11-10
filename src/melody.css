@@ -1,0 +1,15 @@
+.melody-challenges { margin-top: 24px; }
+.melody-challenges h2 { font-family: Georgia, serif; font-size: 1.8rem; font-weight: 400; margin: 0 0 8px; }
+.melody-challenges p { color: var(--text-muted); margin: 0 0 16px; }
+.melody-list { display: grid; gap: 8px; }
+.melody-entry, .melody-resume { width: 100%; min-height: 52px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-raised); padding: 9px 12px; text-align: left; }
+.melody-entry { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.melody-entry strong, .melody-entry small { display: block; }
+.melody-entry small { color: var(--text-muted); }
+.melody-entry:disabled { opacity: .55; }
+.melody-resume { margin-bottom: 12px; background: var(--accent-soft); font-weight: 600; }
+.melody-staff-scroll { width: 100%; overflow-x: auto; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 14px; }
+.melody-staff { display: block; width: 100%; min-width: 400px; height: auto; color: var(--text); }
+.melody-note { opacity: .72; }
+.melody-note-current { color: var(--accent-text); }
+.melody-note-label { font: 12px sans-serif; fill: var(--text); }
