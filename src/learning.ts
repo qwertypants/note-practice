@@ -13,9 +13,21 @@ export function retentionDays(history: LearningHistory, outcome: LearningOutcome
   const previous = recordFor(history, outcome);
   if (!outcome.clean || !Number.isFinite(outcome.now) || previous?.lastSessionId === outcome.sessionId ||
       previous?.lastSuccessAt === null || previous?.lastSuccessAt === undefined ||
-      !Number.isFinite(previous.lastSuccessAt) || outcome.now < previous.lastSuccessAt)
+      !Number.isFinite(previous.lastSuccessAt) || outcome.now < previous.lastAttemptAt ||
+      outcome.now < previous.lastSuccessAt)
     return 0;
-  return Math.floor((outcome.now - previous.lastSuccessAt) / DAY);
+  return Math.floor((outcome.now - Math.max(previous.lastSuccessAt, previous.lastAttemptAt)) / DAY);
+}
+
+export function recordExposure(history: LearningHistory, noteIds: string[], now: number): LearningHistory {
+  if (!Number.isFinite(now)) return history;
+  const updated = { ...history };
+  for (const noteId of noteIds) {
+    const previous = updated[noteId];
+    if (previous && now > previous.lastAttemptAt)
+      updated[noteId] = { ...previous, lastAttemptAt: now };
+  }
+  return updated;
 }
 
 export function recordOutcome(history: LearningHistory, outcome: LearningOutcome): LearningHistory {
@@ -24,7 +36,10 @@ export function recordOutcome(history: LearningHistory, outcome: LearningOutcome
   const lastAttemptAt = Math.max(outcome.now, previous?.lastAttemptAt ?? outcome.now);
   let record: LearningRecord;
   if (!outcome.clean) {
-    if (previous?.lastSessionId === outcome.sessionId && previous.stage === 0) return history;
+    if (previous?.lastSessionId === outcome.sessionId && previous.stage === 0) {
+      if (lastAttemptAt === previous.lastAttemptAt) return history;
+      return { ...history, [outcome.noteId]: { ...previous, lastAttemptAt } };
+    }
     record = {
       lastAttemptAt,
       lastSuccessAt: previous?.lastSuccessAt ?? null,

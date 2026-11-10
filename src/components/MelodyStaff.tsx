@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { Note } from "../contracts";
 import { ledgerSteps } from "../music";
 import "../melody.css";
@@ -11,11 +12,25 @@ export function MelodyStaff({
   index: number;
   reveal?: boolean;
 }) {
+  const scrollContainer = useRef<HTMLDivElement>(null);
+  const currentNote = useRef<SVGGElement>(null);
+  useLayoutEffect(() => {
+    const container = scrollContainer.current;
+    const note = currentNote.current;
+    if (!container || !note) return;
+    const viewport = container.getBoundingClientRect();
+    const bounds = note.getBoundingClientRect();
+    const padding = 16;
+    if (bounds.left < viewport.left + padding)
+      container.scrollLeft += bounds.left - viewport.left - padding;
+    else if (bounds.right > viewport.right - padding)
+      container.scrollLeft += bounds.right - viewport.right + padding;
+  }, [index, notes.length, reveal]);
   const width = Math.max(360, 100 + notes.length * 58);
   const current = Math.min(index + 1, notes.length);
   const revealedName = reveal ? notes[index]?.writtenName : undefined;
   return (
-    <div className="melody-staff-scroll">
+    <div className="melody-staff-scroll" ref={scrollContainer}>
       <svg
         className="melody-staff"
         viewBox={`0 0 ${width} 230`}
@@ -34,7 +49,7 @@ export function MelodyStaff({
           const y = 130 - note.staffStep * 7;
           const stemUp = note.staffStep < 4;
           return (
-            <g key={noteIndex} aria-hidden="true" className={noteIndex === index ? "melody-note-current" : "melody-note"}>
+            <g key={noteIndex} ref={noteIndex === index ? currentNote : undefined} aria-hidden="true" className={noteIndex === index ? "melody-note-current" : "melody-note"}>
               {ledgerSteps(note.staffStep).map((step) => (
                 <line key={step} x1={x - 18} x2={x + 18} y1={130 - step * 7} y2={130 - step * 7} className="ledger-line" />
               ))}

@@ -23,7 +23,17 @@ function parseSession(value: unknown, unlocked: number): LessonSession | null {
     typeof candidate.bestStreak !== "number" || !Number.isInteger(candidate.bestStreak) ||
     candidate.bestStreak < 0 || candidate.bestStreak > candidate.cleanAnswers
   ) return null;
+  const sessionId = candidate.sessionId;
+  const attempts = candidate.attempts;
+  if ((sessionId !== undefined && (typeof sessionId !== "string" || !sessionId || sessionId.length > 160)) ||
+      (attempts !== undefined && (!Array.isArray(attempts) || attempts.length !== 8 ||
+        !attempts.every(attempt => typeof attempt === "object" && attempt !== null &&
+          typeof attempt.assisted === "boolean" && typeof attempt.mistakes === "number" &&
+          Number.isSafeInteger(attempt.mistakes) && attempt.mistakes >= 0 &&
+          (attempt.mistakes === 0 || attempt.assisted))))) return null;
   return {
+    ...(sessionId === undefined ? {} : { sessionId }),
+    ...(attempts === undefined ? {} : { attempts: attempts.map(attempt => ({ assisted: attempt.assisted, mistakes: attempt.mistakes })) }),
     lessonId: lesson.id,
     queue: candidate.queue as string[],
     answered: candidate.answered as boolean[],

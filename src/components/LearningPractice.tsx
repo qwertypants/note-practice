@@ -3,7 +3,7 @@ import type { Progress } from "../contracts";
 import type { Activity } from "../learning-contracts";
 import { answerActivity } from "../activity";
 import { assistActivity, advanceActivity } from "../melody";
-import { recordOutcome } from "../learning";
+import { recordExposure, recordOutcome } from "../learning";
 import { MELODIES } from "../melodies";
 import { noteAt } from "../music";
 import { createNoteAudio, type NoteAudio } from "../audio";
@@ -72,7 +72,11 @@ export function LearningPractice({activity, progress, muted, onChange, onBack}: 
     if (!target || muted) return;
     stopPlayback();
     const assisted = assistActivity(activity, phrase);
-    onChange(assisted, progress);
+    const learning = recordExposure(progress.learning ?? {},
+      (phrase ? activity.notes : [target]).map(note => note.id), Date.now());
+    const updated = { ...progress, learning };
+    latest.current = { ...latest.current, activity: assisted, progress: updated };
+    onChange(assisted, updated);
     const version = ++playbackId.current;
     for (const timer of timers.current) clearTimeout(timer);
     timers.current = [];

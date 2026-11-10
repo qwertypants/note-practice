@@ -1,4 +1,4 @@
-import type { Lesson, Note, Position, Progress, Round } from "./contracts";
+import type { Lesson, LessonAttempt, Note, Position, Progress, Round } from "./contracts";
 import { LESSONS } from "./lessons";
 import { noteAt } from "./music";
 
@@ -20,6 +20,7 @@ export function createRound(lesson: Lesson): Round {
     maxFret: lesson.maxFret,
     queue,
     answered: Array(8).fill(false),
+    attempts: Array.from({ length: 8 }, () => ({ assisted: false, mistakes: 0 })),
     index: 0,
     status: "asking",
     assisted: false,
@@ -40,6 +41,7 @@ export function help(
     round: {
       ...round,
       assisted: true,
+      attempts: round.attempts?.map((attempt, index) => index === round.index ? { ...attempt, assisted: true } : attempt),
       streak: 0,
       feedback: `Look for ${note.name}. Its label is showing on the neck.`,
     },
@@ -84,6 +86,7 @@ export function answer(
         queue,
         mistakes,
         assisted: true,
+        attempts: round.attempts?.map((attempt, index) => index === round.index ? { assisted: true, mistakes } : attempt),
         streak: 0,
         feedback:
           mistakes >= 2
@@ -138,8 +141,8 @@ export function next(
       ...round,
       index: round.index + 1,
       status: round.mode === "lesson" && round.answered?.[round.index + 1] ? "correct" : "asking",
-      assisted: false,
-      mistakes: 0,
+      assisted: round.attempts?.[round.index + 1]?.assisted ?? false,
+      mistakes: round.attempts?.[round.index + 1]?.mistakes ?? 0,
       feedback: round.mode === "lesson" && round.answered?.[round.index + 1] ? "You found this note already." : "",
     },
     progress,
@@ -156,8 +159,8 @@ export function revisit(round: Round, index: number): Round {
     ...round,
     index,
     status: answered ? "correct" : "asking",
-    assisted: false,
-    mistakes: 0,
+    assisted: round.attempts?.[index]?.assisted ?? false,
+    mistakes: round.attempts?.[index]?.mistakes ?? 0,
     streak: 0,
     feedback: answered ? "You found this note already." : "Take another look at this note.",
   };
@@ -170,11 +173,16 @@ export function restoreRound(
   index: number,
   cleanAnswers: number,
   bestStreak: number,
+  savedAttempts?: LessonAttempt[],
 ): Round | null {
   if (queueIds.length !== 8 || answered.length !== 8 || index < 0 || index > 7) return null;
   const queue = queueIds.map((id) => lesson.notes.find((note) => note.id === id));
   if (queue.some((note) => !note)) return null;
   const isAnswered = answered[index] === true;
+  const firstUnanswered = answered.indexOf(false);
+  const attempts = savedAttempts ?? answered.map((_, position) => ({
+    assisted: position === firstUnanswered, mistakes: 0,
+  }));
   return {
     mode: "lesson",
     lessonId: lesson.id,
@@ -183,8 +191,9 @@ export function restoreRound(
     index,
     status: isAnswered ? "correct" : "asking",
     answered,
-    assisted: false,
-    mistakes: 0,
+    attempts,
+    assisted: attempts[index]?.assisted ?? true,
+    mistakes: attempts[index]?.mistakes ?? 0,
     streak: 0,
     cleanAnswers,
     bestStreak,

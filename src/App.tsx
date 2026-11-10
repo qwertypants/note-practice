@@ -11,8 +11,9 @@ import { Neck } from "./components/Neck";
 import { usePracticeMotion } from "./usePracticeMotion";
 import type { Activity, Melody } from "./learning-contracts";
 import { restoreActivity, saveActivity } from "./activity";
-import { createDailyActivity, recordOutcome } from "./learning";
+import { createDailyActivity, recordExposure, recordOutcome } from "./learning";
 import { createMelodyActivity } from "./melody";
+import { createSessionId } from "./session-id";
 import { DailyPracticePanel } from "./components/DailyPracticePanel";
 import { MelodyChallengePanel } from "./components/MelodyChallengePanel";
 import { LearningPractice } from "./components/LearningPractice";
@@ -63,11 +64,21 @@ export default function App() {
     const saved = loaded.progress.session;
     const lesson = LESSONS.find((item) => item.id === saved?.lessonId);
     return lesson && saved
-      ? restoreRound(lesson, saved.queue, saved.answered, saved.index, saved.cleanAnswers, saved.bestStreak)
+      ? restoreRound(lesson, saved.queue, saved.answered, saved.index, saved.cleanAnswers, saved.bestStreak, saved.attempts)
       : null;
   });
   const [activity, setActivity] = useState(() => restoreActivity(loaded.progress.activity));
-  const lessonSessionId = useRef(crypto.randomUUID());
+  const lessonSessionId = useRef("");
+  if (!lessonSessionId.current)
+    lessonSessionId.current = loaded.progress.session?.sessionId ?? createSessionId();
+  useEffect(() => {
+    if (!loaded.progress.session || !round) return;
+    const updated = { ...loaded.progress, session: {
+      ...loaded.progress.session, sessionId: lessonSessionId.current, attempts: round.attempts,
+    }};
+    setProgress(updated);
+    setPersistent(saveProgress(updated));
+  }, [loaded]);
   const [guide, setGuide] = useState(false);
   const [helpRequested, setHelpRequested] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
@@ -110,6 +121,13 @@ export default function App() {
   }
   const lesson = LESSONS[lessonIndex];
   const target = round?.queue[round.index];
+  function replayNote() {
+    if (!target || muted) return;
+    const updated = { ...progress, learning: recordExposure(progress.learning ?? {}, [target.id], Date.now()) };
+    setProgress(updated);
+    setPersistent(saveProgress(updated));
+    void hear(target.midi);
+  }
   const showGuide = guide || (!round && !activity);
   const motionScope = usePracticeMotion(showGuide, round);
   if (!lesson) return <p>Lessons are getting ready.</p>;
@@ -135,6 +153,8 @@ export default function App() {
     const session = nextRound?.mode === "lesson" && nextRound.status !== "complete"
       ? {
           lessonId: nextRound.lessonId,
+          sessionId: lessonSessionId.current,
+          attempts: nextRound.attempts,
           queue: nextRound.queue.map((note) => note.id),
           answered: nextRound.answered ?? Array(8).fill(false),
           index: nextRound.index,
@@ -152,14 +172,14 @@ export default function App() {
   function start(index: number) {
     stopAudio();
     setActivity(null);
-    lessonSessionId.current = crypto.randomUUID();
     setHelpRequested(false);
     const selected = LESSONS[index];
     if (selected) {
       setLessonIndex(index);
       const savedSession = progress.session?.lessonId === selected.id ? progress.session : null;
+      lessonSessionId.current = savedSession?.sessionId ?? createSessionId();
       const nextRound = savedSession
-        ? restoreRound(selected, savedSession.queue, savedSession.answered, savedSession.index, savedSession.cleanAnswers, savedSession.bestStreak)
+        ? restoreRound(selected, savedSession.queue, savedSession.answered, savedSession.index, savedSession.cleanAnswers, savedSession.bestStreak, savedSession.attempts)
         : null;
       const activeRound = nextRound ?? createRound(selected);
       setRound(activeRound);
@@ -173,7 +193,7 @@ export default function App() {
     stopAudio();
     setHelpRequested(false);
     setActivity(null);
-    lessonSessionId.current = crypto.randomUUID();
+    lessonSessionId.current = createSessionId();
     const review = createReviewRound(progress);
     setRound(review);
     persistRound(review, progress);
@@ -195,8 +215,8 @@ export default function App() {
     updateActivity(current, progress);
     requestAnimationFrame(() => document.querySelector(".learning-practice")?.scrollIntoView({behavior: "smooth", block: "start"}));
   }
-  function startDaily() { enterActivity(createDailyActivity(progress, Date.now(), crypto.randomUUID())); }
-  function startMelody(melody: Melody) { enterActivity(createMelodyActivity(melody, crypto.randomUUID())); }
+  function startDaily() { enterActivity(createDailyActivity(progress, Date.now(), createSessionId())); }
+  function startMelody(melody: Melody) { enterActivity(createMelodyActivity(melody, createSessionId())); }
   function backToLessons() {
     setActivity(null);
     setGuide(true);
@@ -478,7 +498,7 @@ export default function App() {
                   aria-label={`Play note ${target.name}`}
                   aria-hidden={!revealed}
                   disabled={!revealed || muted}
-                  onClick={() => void hear(target.midi)}
+                  onClick={replayNote}
                 >
                   {target.name}
                   <small aria-hidden="true">{muted ? "🔇" : "🔊"}</small>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emptyProgress } from "./progress";
-import { createDailyActivity, dailyDueCount, recordOutcome, retentionDays, retryMissedNote } from "./learning";
+import { createDailyActivity, dailyDueCount, recordExposure, recordOutcome, retentionDays, retryMissedNote } from "./learning";
 import type { LearningHistory, LearningOutcome } from "./learning-contracts";
 
 const DAY = 86_400_000;
@@ -34,8 +34,29 @@ describe("learning schedule", () => {
 
   it("keeps a failure's due date fixed when the same session retries or uses Help", () => {
     const failed = recordOutcome({}, outcome(DAY, "one", false));
-    expect(recordOutcome(failed, outcome(DAY + 1000, "one", false))).toBe(failed);
+    expect(recordOutcome(failed, outcome(DAY + 1000, "one", false)).E4).toMatchObject({
+      dueAt: 2 * DAY, lastAttemptAt: DAY + 1000,
+    });
     expect(failed.E4.dueAt).toBe(2 * DAY);
+  });
+
+  it("measures retention after the latest mistake, Help, and assisted resolution", () => {
+    const first = recordOutcome({}, outcome(0, "first"));
+    const failed = recordOutcome(first, outcome(3 * DAY, "helped", false));
+    const resolved = recordOutcome(failed, outcome(3 * DAY + DAY / 2, "helped", false));
+    expect(retentionDays(resolved, outcome(4 * DAY, "later"))).toBe(0);
+    expect(retentionDays(resolved, outcome(5 * DAY, "later"))).toBe(1);
+    expect(resolved.E4.dueAt).toBe(4 * DAY);
+  });
+
+  it("counts heard notes as exposure without creating recall or changing the schedule", () => {
+    const first = recordOutcome({}, outcome(0, "first"));
+    const exposed = recordExposure(first, ["E4", "B3"], 3 * DAY);
+    expect(exposed.E4).toEqual({...first.E4, lastAttemptAt: 3 * DAY});
+    expect(exposed.B3).toBeUndefined();
+    expect(retentionDays(exposed, outcome(5 * DAY, "later"))).toBe(2);
+    expect(recordExposure(exposed, ["E4"], 2 * DAY)).toEqual(exposed);
+    expect(recordExposure(exposed, ["E4"], Number.NaN)).toEqual(exposed);
   });
 
   it("resets on errors, keeps prior success, and rejects clock rollback credit", () => {

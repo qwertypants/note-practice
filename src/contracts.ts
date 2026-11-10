@@ -26,7 +26,13 @@ export interface Progress {
   learning?: import("./learning-contracts").LearningHistory;
   activity?: import("./learning-contracts").SavedActivity | null;
 }
+export interface LessonAttempt {
+  assisted: boolean;
+  mistakes: number;
+}
 export interface LessonSession {
+  sessionId?: string;
+  attempts?: LessonAttempt[];
   lessonId: string;
   queue: string[];
   answered: boolean[];
@@ -39,6 +45,7 @@ export type Round = (
   | { mode: "review"; lessonId: null }
 ) & {
   maxFret: number;
+  attempts?: LessonAttempt[];
   queue: Note[];
   answered?: boolean[];
   index: number;

@@ -1,3 +1,6 @@
+import { answer, createRound, help, restoreRound } from "./game";
+import { LESSONS } from "./lessons";
+import { positionsFor } from "./music";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   emptyProgress,
@@ -46,6 +49,48 @@ describe("saved progress", () => {
     storage(JSON.stringify({ version: 1, unlocked: 0, session: { ...session, index: 8 } }));
     expect(loadProgress().progress.session).toBeNull();
   });
+  it("preserves helped and mistaken questions through serialization and restoration", () => {
+    storage(null);
+    for (const assistance of ["help", "mistake"]) {
+      const initial = createRound(LESSONS[0]);
+      const state = assistance === "help"
+        ? help(initial, emptyProgress())
+        : answer(initial, {string: 6, fret: 0}, emptyProgress());
+      const session = {
+        lessonId: initial.lessonId, sessionId: "stable-lesson",
+        queue: initial.queue.map(note => note.id), answered: initial.answered ?? [],
+        attempts: state.round.attempts, index: 0, cleanAnswers: 0, bestStreak: 0,
+      };
+      if (session.lessonId === null) throw Error("Expected lesson");
+      expect(saveProgress({...state.progress, session: {...session, lessonId: session.lessonId}})).toBe(true);
+      const saved = loadProgress().progress.session;
+      expect(saved).toEqual(session);
+      if (!saved) throw Error("Missing saved session");
+      const restored = restoreRound(LESSONS[0], saved.queue, saved.answered,
+        saved.index, saved.cleanAnswers, saved.bestStreak, saved.attempts);
+      if (!restored) throw Error("Missing restored lesson");
+      const resolved = answer(restored, positionsFor(restored.queue[0], 0)[0], state.progress);
+      expect(resolved.round.cleanAnswers).toBe(0);
+      expect(resolved.progress.mastery[restored.queue[0].id]).toBe(0);
+    }
+  });
+
+  it("rejects malformed optional lesson identity and attempt metadata", () => {
+    const session = {lessonId: "open-2", queue: Array(8).fill("E4"),
+      answered: Array(8).fill(false), index: 0, cleanAnswers: 0, bestStreak: 0};
+    for (const extension of [
+      {sessionId: ""}, {sessionId: 3}, {attempts: []},
+      {attempts: Array(8).fill({assisted: false, mistakes: -1})},
+      {attempts: Array(8).fill({assisted: false, mistakes: 1})},
+      {attempts: Array(8).fill(null)},
+    ]) {
+      storage(JSON.stringify({version: 1, mastery: {B3: 2}, session: {...session, ...extension}}));
+      const progress = loadProgress().progress;
+      expect(progress.session).toBeNull();
+      expect(progress.mastery.B3).toBe(2);
+    }
+  });
+
   it("validates unknown shape and bounds values", () => {
     storage(
       JSON.stringify({

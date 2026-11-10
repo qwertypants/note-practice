@@ -41,6 +41,30 @@ describe("practice rounds", () => {
     expect(forward.status).toBe("correct");
     expect(forward.answered).toEqual([true, true, false, false, false, false, false, false]);
   });
+  it("does not award clean evidence for a legacy unresolved question", () => {
+    const initial = round();
+    const restored = restoreRound(lesson, initial.queue.map(note => note.id),
+      Array(8).fill(false), 0, 0, 0);
+    if (!restored) throw Error("Missing restored lesson");
+    const state = answer(restored, {string: 1, fret: 0}, emptyProgress());
+    expect(state.round.cleanAnswers).toBe(0);
+    expect(state.progress.mastery.E4).toBe(0);
+    expect(next(state.round, state.progress).round.assisted).toBe(false);
+  });
+
+  it("keeps an unresolved mistake when revisiting an answered question", () => {
+    let state = answer(round(), {string: 1, fret: 0}, emptyProgress());
+    state = next(state.round, state.progress);
+    const target = state.round.queue[1];
+    const position = positionsFor(target, 0)[0];
+    state = answer(state.round, {string: 6, fret: 0}, state.progress);
+    const returned = next(revisit(state.round, 0), state.progress).round;
+    expect(returned).toMatchObject({index: 1, assisted: true, mistakes: 1});
+    const resolved = answer(returned, position, state.progress);
+    expect(resolved.round.cleanAnswers).toBe(1);
+    expect(resolved.progress.mastery[target.id]).toBe(0);
+  });
+
   it("balances eight questions and includes every lesson note", () => {
     for (const lesson of LESSONS) {
       const queue = createRound(lesson).queue;
