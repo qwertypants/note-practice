@@ -22,6 +22,33 @@ describe("melody activity", () => {
     expect(advanceActivity(activity)).toBe(activity);
   });
 
+  it("advances settled correct steps while preserving assistance", () => {
+    const initial = createMelodyActivity(MELODIES[0], "session-1");
+    const settled = {
+      ...initial,
+      status: "correct" as const,
+      answered: [true, false, false, false],
+      assisted: [false, true, false, false],
+    };
+    const next = advanceActivity(settled);
+    expect(next.index).toBe(1);
+    expect(next.status).toBe("asking");
+    expect(next.answered).toEqual([true, false, false, false]);
+    expect(next.assisted).toEqual([false, true, false, false]);
+    expect(advanceActivity(next)).toBe(next);
+
+    const last = {
+      ...next,
+      index: next.notes.length - 1,
+      status: "correct" as const,
+      answered: [true, true, true, true],
+    };
+    const complete = advanceActivity(last);
+    expect(complete.status).toBe("complete");
+    expect(complete.answered).toEqual([true, true, true, true]);
+    expect(complete.assisted).toEqual([false, true, false, false]);
+  });
+
   it("marks only unsettled steps as assisted", () => {
     const initial = createMelodyActivity(MELODIES[0], "session-1");
     const first = assistActivity(initial);

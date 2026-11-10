@@ -36,7 +36,7 @@ export function assistActivity(activity: Activity, allRemaining = false): Activi
 }
 
 export function advanceActivity(activity: Activity): Activity {
-  if (activity.status !== "correct" || activity.answered[activity.index]) return activity;
+  if (activity.status !== "correct") return activity;
   const answered = activity.answered.map((value, index) => value || index === activity.index);
   if (activity.index >= activity.notes.length - 1) {
     return { ...activity, answered, status: "complete", feedback: "Phrase complete. Nice playing." };
