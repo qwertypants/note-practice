@@ -74,15 +74,23 @@ export function createDailyActivity(
   const selected = unlocked.sort((a, b) => {
     const aRecord = records[a.note.id];
     const bRecord = records[b.note.id];
-    const rank = (record: LearningRecord | undefined, id: string) =>
-      record && record.dueAt <= now ? 0 : record || Object.hasOwn(progress.mastery, id) ? 1 : 2;
+    const rank = (record: LearningRecord | undefined, id: string) => {
+      if (record && record.dueAt <= now) return 0;
+      const hasMastery = skill === "fretboard" && Object.hasOwn(progress.mastery, id);
+      if (!record && !hasMastery) return 3;
+      const weak = skill === "pitch"
+        ? (record?.stage ?? 3) < 3
+        : (hasMastery && progress.mastery[id] < 3) || (record?.stage ?? 3) < 3;
+      return weak ? 1 : 2;
+    };
     const rankDifference = rank(aRecord, a.note.id) - rank(bRecord, b.note.id);
     if (rankDifference) return rankDifference;
-    if (aRecord?.dueAt !== undefined && bRecord?.dueAt !== undefined &&
-        rank(aRecord, a.note.id) === 0 && aRecord.dueAt !== bRecord.dueAt)
+    if (aRecord && bRecord && rank(aRecord, a.note.id) === 0 && aRecord.dueAt !== bRecord.dueAt)
       return aRecord.dueAt - bRecord.dueAt;
+    if (aRecord && bRecord && aRecord.stage !== bRecord.stage)
+      return aRecord.stage - bRecord.stage;
     const masteryDifference = (progress.mastery[a.note.id] ?? 0) - (progress.mastery[b.note.id] ?? 0);
-    return rank(aRecord, a.note.id) === 1 && masteryDifference
+    return skill === "fretboard" && rank(aRecord, a.note.id) === 1 && masteryDifference
       ? masteryDifference : a.note.id.localeCompare(b.note.id);
   }).slice(0, 8);
   const notes = Array.from({ length: 8 }, (_, index) => selected[index % selected.length].note);
