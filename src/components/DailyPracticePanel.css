@@ -1,0 +1,4 @@
+.daily-practice-panel { margin-top: 20px; }
+.daily-practice-panel h2 { margin-bottom: 8px; }
+.daily-practice-panel p { line-height: 1.5; }
+.daily-practice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }

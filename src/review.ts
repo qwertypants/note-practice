@@ -1,7 +1,7 @@
 import type { Note, Progress, Round } from "./contracts";
 import { LESSONS } from "./lessons";
 
-function unlockedNotes(progress: Progress) {
+export function unlockedNotes(progress: Progress) {
   const notes = new Map<string, { note: Note; maxFret: number }>();
   for (const lesson of LESSONS.slice(0, progress.unlocked + 1)) {
     for (const note of lesson.notes) {
