@@ -23,6 +23,8 @@ export interface Progress {
   unlocked: number;
   rounds: number;
   session?: LessonSession | null;
+  learning?: import("./learning-contracts").LearningHistory;
+  activity?: import("./learning-contracts").SavedActivity | null;
 }
 export interface LessonSession {
   lessonId: string;
