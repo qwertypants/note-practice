@@ -199,3 +199,15 @@ for (const firstAttempt of ["Help", "mistake"]) test(`repeated lesson Help after
   expect(repeated.learning.E4.dueAt).toBe(first.learning.E4.dueAt);
   expect(repeated.learning.E4.stage).toBe(0);
 });
+
+test("How to play opens visible instructions and returns to the current melody", async ({page}) => {
+  await page.setViewportSize({width: 375, height: 812});
+  await page.goto("/");
+  await page.getByRole("button", {name: "Open string call, 4 notes", exact: true}).click();
+  await page.getByRole("button", {name: /How to play/}).click();
+  const heading = page.getByRole("heading", {name: /A little practice/});
+  await expect(heading).toBeInViewport();
+  await page.getByRole("button", {name: /Back to my notes/}).click();
+  await expect(page.locator(".learning-practice")).toBeVisible();
+  await expect(page.getByText("1 / 4 notes", {exact: true})).toBeVisible();
+});

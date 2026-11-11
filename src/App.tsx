@@ -117,7 +117,14 @@ export default function App() {
   }
   function toggleGuide() {
     stopAudio();
-    setGuide(!guide);
+    const opening = !guide;
+    setGuide(opening);
+    requestAnimationFrame(() => {
+      document.querySelector(opening ? ".guide" : ".learning-practice, .game, .summary")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
   }
   const lesson = LESSONS[lessonIndex];
   const target = round?.queue[round.index];
@@ -256,7 +263,7 @@ export default function App() {
             {muted ? "Sound off" : "Sound on"}
           </button>
           <button className="quiet-button" onClick={toggleGuide}>
-            {guide && round ? "Back to practice ↗" : "How to play ↗"}
+            {guide && (round || activity) ? "Back to practice ↗" : "How to play ↗"}
           </button>
         </div>
       </header>
@@ -397,9 +404,9 @@ export default function App() {
               </div>
               <button
                 className="primary-button"
-                onClick={() => (round ? setGuide(false) : start(0))}
+                onClick={() => ((round || activity) ? toggleGuide() : start(0))}
               >
-                {round ? "Back to my notes" : "Let’s find a note"}{" "}
+                {(round || activity) ? "Back to my notes" : "Let’s find a note"}{" "}
                 <span>→</span>
               </button>
               <p className="gentle-note">
