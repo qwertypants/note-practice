@@ -134,3 +134,17 @@ describe("phrase playback", () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+it("recovers from a stalled sample request instead of remaining silent forever", async () => {
+  vi.useFakeTimers();
+  try {
+    tone.ready.mockImplementationOnce(() => {});
+    const player = createNoteAudio();
+    const pending = player.play(64);
+    const result = pending.then(value => value);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(await result).toBe(false);
+    expect(await player.play(64)).toBe(true);
+    player.dispose();
+  } finally { vi.useRealTimers(); }
+});

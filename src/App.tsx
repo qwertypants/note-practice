@@ -498,7 +498,12 @@ export default function App() {
                 </p>
               </div>
               <div className="staff-card">
-                <Staff note={target} reveal={revealed} />
+                <Staff note={target} reveal={revealed} muted={muted} onHear={() => {
+                  if (round.status === "asking") {
+                    apply(help(round, progress), true);
+                    void hear(target.midi);
+                  } else replayNote();
+                }} />
                 <button
                   className={`note-name note-name-button${revealed ? "" : " name-hidden"}`}
                   type="button"

@@ -107,7 +107,7 @@ export function LearningPractice({activity, progress, muted, onChange, onBack}: 
     <div className="game-heading"><span className="tag">{title}</span><span>{activity.index + 1} / {activity.notes.length} notes</span></div>
     <h2>{activity.status === "correct" ? "That's the one!" : activity.kind === "daily" ? "Where does this note live?" : "Find the marked note."}</h2>
     <p>Read the note, then tap its place on the neck. No instrument needed.</p>
-    {activity.kind === "melody" ? <MelodyStaff notes={activity.notes} index={activity.index} reveal={revealed} /> : <Staff note={target} reveal={revealed} />}
+    {activity.kind === "melody" ? <button type="button" className="staff-play" aria-label="Hear the marked staff note" disabled={muted} onClick={() => void hear(false)}><MelodyStaff notes={activity.notes} index={activity.index} reveal={revealed} /></button> : <Staff note={target} reveal={revealed} muted={muted} onHear={() => void hear(false)} />}
     <div className="learning-audio-actions">
       {activity.kind === "melody" && <button className="quiet-button" disabled={muted || playing} onClick={() => void hear(true)}>Hear the phrase</button>}
       {revealed && <button className="quiet-button" disabled={muted || playing} onClick={() => void hear(false)}>Hear this note</button>}

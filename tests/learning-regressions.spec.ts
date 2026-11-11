@@ -211,3 +211,15 @@ test("How to play opens visible instructions and returns to the current melody",
   await expect(page.locator(".learning-practice")).toBeVisible();
   await expect(page.getByText("1 / 4 notes", {exact: true})).toBeVisible();
 });
+
+test("staff notes can be heard by touch and keyboard without earning clean credit", async ({page}) => {
+  await seedLesson(page);
+  await page.goto("/");
+  await page.getByRole("button", {name: "Hear this staff note", exact: true}).click();
+  expect((await saved(page)).session.attempts[0].assisted).toBe(true);
+  await page.getByRole("button", {name: "Open string call, 4 notes", exact: true}).click();
+  const note = page.getByRole("button", {name: "Hear the marked staff note", exact: true});
+  await note.focus();
+  await page.keyboard.press("Enter");
+  expect((await saved(page)).activity.assisted[0]).toBe(true);
+});

@@ -1093,3 +1093,7 @@ footer span {
 .learning-practice .game-actions button { min-height: 44px; }
 .learning-practice .summary { text-align: center; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.staff-play { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; border-radius: 14px; min-height: 44px; }
+.staff-play:not(:disabled) { cursor: pointer; }
+.staff-play .staff { display: block; width: 100%; }

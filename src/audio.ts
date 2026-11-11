@@ -78,13 +78,17 @@ export function createNoteAudio(): NoteAudio {
         };
       });
       let cleanup: (() => void) | undefined;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const deadline = new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("Audio startup timed out")), 8000);
+      });
       try {
         const started = await Promise.race([
           start().then(() => true),
-          cancellation,
+          cancellation, deadline,
         ]);
         if (!started || cancelled || disposed) return false;
-        const loaded = await Promise.race([loadGuitar().then(() => true), cancellation]);
+        const loaded = await Promise.race([loadGuitar().then(() => true), cancellation, deadline]);
         if (!loaded || cancelled || disposed) return false;
         const time = now();
         sampler?.triggerAttack(440 * 2 ** ((midi - 69) / 12), time);
@@ -103,6 +107,7 @@ export function createNoteAudio(): NoteAudio {
         }
         return false;
       } finally {
+        clearTimeout(timeout);
         if (!cancelled) cancelPending = undefined;
       }
   }

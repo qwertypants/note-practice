@@ -5,14 +5,18 @@ export function Staff({
   note,
   reveal = false,
   compact = false,
+  onHear,
+  muted = false,
 }: {
   note: Note;
   reveal?: boolean;
   compact?: boolean;
+  onHear?: () => void;
+  muted?: boolean;
 }) {
   const y = 112 - note.staffStep * 7;
   const stemUp = note.staffStep < 4;
-  return (
+  const staff = (
     <svg
       className={`staff ${compact ? "staff--compact" : ""}`}
       viewBox="0 0 320 210"
@@ -72,4 +76,5 @@ export function Staff({
       />
     </svg>
   );
+  return onHear ? <button type="button" className="staff-play" aria-label="Hear this staff note" disabled={muted} onClick={onHear}>{staff}</button> : staff;
 }
