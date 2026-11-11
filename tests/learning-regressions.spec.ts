@@ -183,3 +183,19 @@ test("manual lesson replay updates exposure while automatic playback preserves f
   await position(page, 1).click();
   expect((await saved(page)).activity.retentionDays).toBe(2);
 });
+
+for (const firstAttempt of ["Help", "mistake"]) test(`repeated lesson Help after ${firstAttempt} refreshes exposure without delaying due date`, async ({page}) => {
+  await seedLesson(page);
+  await page.clock.install({time: new Date("2026-01-01T12:00:00Z")});
+  await page.clock.setFixedTime(new Date("2026-01-01T12:00:00Z"));
+  await page.goto("/");
+  if (firstAttempt === "Help") await page.getByRole("button", {name: /A little help/}).click();
+  else await position(page, 6).click();
+  const first = await saved(page);
+  await page.clock.setFixedTime(new Date("2026-01-03T12:00:00Z"));
+  await page.getByRole("button", {name: /A little help/}).click();
+  const repeated = await saved(page);
+  expect(repeated.learning.E4.lastAttemptAt - first.learning.E4.lastAttemptAt).toBe(2 * DAY);
+  expect(repeated.learning.E4.dueAt).toBe(first.learning.E4.dueAt);
+  expect(repeated.learning.E4.stage).toBe(0);
+});

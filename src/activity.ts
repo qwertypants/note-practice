@@ -29,10 +29,7 @@ export function answerActivity(activity: Activity, midi: number, progress: Progr
   const clean = correct && !activity.assisted[activity.index] && !activity.mistakes[activity.index];
   const outcome = {noteId: target.id, sessionId: activity.sessionId, clean, now};
   const remembered = retentionDays(progress.learning ?? {}, outcome);
-  // A failed first attempt already reset the interval. Resolving that same item
-  // with help does not write a second outcome or move its due date.
-  const learning = correct && activity.mistakes[activity.index]
-    ? progress.learning ?? {} : recordOutcome(progress.learning ?? {}, outcome);
+  const learning = recordOutcome(progress.learning ?? {}, outcome);
   const atCurrent = (flags: boolean[], flag: boolean) => flags.map((old, index) => index === activity.index ? flag : old);
   let updated: Activity = {...activity,
     answered: atCurrent(activity.answered, correct),

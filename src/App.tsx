@@ -131,7 +131,7 @@ export default function App() {
   const showGuide = guide || (!round && !activity);
   const motionScope = usePracticeMotion(showGuide, round);
   if (!lesson) return <p>Lessons are getting ready.</p>;
-  function apply(result: ReturnType<typeof answer>) {
+  function apply(result: ReturnType<typeof answer>, helpUsed = false) {
     setRound(result.round);
     let updated = result.progress;
     if (round?.status === "asking" && result.round.status === "correct" && target) {
@@ -141,7 +141,7 @@ export default function App() {
       })};
     }
     if (round?.status === "asking" && target && result.round.status === "asking" &&
-      (result.round.mistakes > round.mistakes || (!round.assisted && result.round.assisted))) {
+      (helpUsed || result.round.mistakes > round.mistakes || (!round.assisted && result.round.assisted))) {
       updated = {...updated, learning: recordOutcome(updated.learning ?? {}, {
         noteId: target.id, sessionId: lessonSessionId.current, clean: false, now: Date.now(),
       })};
@@ -567,7 +567,7 @@ export default function App() {
                     className="help-button"
                     onClick={() => {
                       setHelpRequested(true);
-                      apply(help(round, progress));
+                      apply(help(round, progress), true);
                       requestAnimationFrame(scrollToTop);
                     }}
                   >

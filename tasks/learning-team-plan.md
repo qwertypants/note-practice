@@ -70,7 +70,7 @@ Every writer reports branch/worktree, base and commit SHAs, changed paths, comma
 | `feature/daily-practice` | `../note-practice-daily` | A | Committed shared contract | 1 |
 | `feature/melody-challenges` | `../note-practice-melody` | B | Same committed contract | 2 |
 
-An earlier guitar worker was interrupted after the scope change. Its isolated `feature/guitar-input` worktree is excluded from integration; do not cherry-pick it. Preserve it until safe cleanup can be assessed. No physical-instrument verification is required for the revised product.
+The earlier guitar worker was interrupted after the scope change. Its task-created worktree and unmodified branch were removed after confirming they contained only its excluded prototype. No microphone implementation was integrated. No physical-instrument verification is required for the revised product.
 
 Dependency order: baseline and contracts, then A and B in parallel, then daily integration, melody integration, independent verification. Workers branch from a fixed contract SHA. Root centrally reviews/cherry-picks commits and resolves conflicts in the integration checkout. Run fixed-port browser suites serially so worktrees cannot accidentally test another checkout's server.
 
@@ -81,32 +81,32 @@ Dependency order: baseline and contracts, then A and B in parallel, then daily i
 - [x] Recheck base and worktrees; isolate integration work.
 - [x] Run `npm ci`, unit tests, build, and existing browser suite; record baseline evidence.
 - [x] Commit initial shared contract and plan, then start feature workers.
-- [ ] Apply scope revision: remove microphone contracts/UI, flatten learning history to note ID, and revise this plan in both checkouts.
-- [ ] Before changing shared symbols, inspect their callers. Keep literal E4 sounding / E5 written examples and existing lesson tests.
-- [ ] Test old/corrupt payloads, invalid dates, invalid activity state, unavailable storage, and additive-field compatibility with the old app.
+- [x] Apply scope revision: remove microphone contracts/UI, flatten learning history to note ID, and revise this plan in both checkouts.
+- [x] Before changing shared symbols, inspect their callers. Keep literal E4 sounding / E5 written examples and existing lesson tests.
+- [x] Test old/corrupt payloads, invalid dates, invalid activity state, unavailable storage, and additive-field compatibility with the old app.
 
 ### Wave 1: A and B implementation and task review
 
-- [ ] A verifies due ordering, weak-note priority with more than eight eligible notes, small/all-future pools, repeated same-day success, assistance, last-item mistakes, retry spacing, and clock rollback.
-- [ ] B verifies catalog eligibility, phrase order, repeated notes, self-paced advancement, settled-step resumption, Help without future-answer leaks, and completion once.
-- [ ] Each worker runs focused tests/build, inspects the diff, and commits only owned files. Root integrates skill-removal cleanup with matching contract changes when local worker contracts are older.
-- [ ] Independent scoped review checks both spec and quality. Fix findings and recheck the affected behavior before acceptance.
+- [x] A verifies due ordering, weak-note priority with more than eight eligible notes, small/all-future pools, repeated same-day success, assistance, last-item mistakes, retry spacing, and clock rollback.
+- [x] B verifies catalog eligibility, phrase order, repeated notes, self-paced advancement, settled-step resumption, Help without future-answer leaks, and completion once.
+- [x] Each worker runs focused tests/build, inspects the diff, and commits only owned files. Root integrates skill-removal cleanup with matching contract changes when local worker contracts are older.
+- [x] Independent scoped review checks both spec and quality. Fix findings and recheck the affected behavior before acceptance.
 
 ### Wave 2: root integration
 
-- [ ] Wire daily entry, persistence, outcome recording, interval summary, and retry behavior. Commit a usable daily increment.
-- [ ] Wire melody catalog, full-phrase staff, neck answers, optional playback, silent mode, Help, and resume. Commit a usable melody increment.
-- [ ] Verify lessons remain playable and retain unlocking rules. New activity modes must not grant lesson unlocks.
-- [ ] Update README and focused E2E. Record worker-to-integration commit provenance and run combined checks after integration.
+- [x] Wire daily entry, persistence, outcome recording, interval summary, and retry behavior. Commit a usable daily increment.
+- [x] Wire melody catalog, full-phrase staff, neck answers, optional playback, silent mode, Help, and resume. Commit a usable melody increment.
+- [x] Verify lessons remain playable and retain unlocking rules. New activity modes must not grant lesson unlocks.
+- [x] Update README and focused E2E. Record worker-to-integration commit provenance and run combined checks after integration.
 
 ### Wave 3: independent verification
 
-- [ ] A fresh reviewer inspects the integrated diff and drives the app without relying on implementer claims.
-- [ ] Verify daily practice across simulated days, same-session limits, reload after Help/settlement, melody completion, preview assistance, playback cancellation, storage failures, and old-progress preservation.
-- [ ] Check real Chromium desktop and phone viewports at 320, 375, and 430 pixels: no page overflow, at least 44-pixel touch targets, keyboard access, visible focus, useful current-note announcements, reduced motion, and no console errors.
-- [ ] Confirm no runtime microphone API, permission prompt, instrument requirement, or pitch-detection UI in the final source/build. Offline tap practice must work after caching; audio remains best effort.
-- [ ] Test Pages base-path build and inspect generated asset references. Report physical-phone behavior separately if it cannot be observed. No physical guitar gate remains.
-- [ ] Fix material findings, rerun affected checks, and obtain independent readback before reporting completion.
+- [x] A fresh reviewer inspects the integrated diff and drives the app without relying on implementer claims.
+- [x] Verify daily practice across simulated days, same-session limits, reload after Help/settlement, melody completion, preview assistance, playback cancellation, storage failures, and old-progress preservation.
+- [x] Check real Chromium desktop and phone viewports at 320, 375, and 430 pixels: no page overflow, at least 44-pixel touch targets, keyboard access, visible focus, useful current-note announcements, reduced motion, and no console errors.
+- [x] Confirm no runtime microphone API, permission prompt, instrument requirement, or pitch-detection UI in the final source/build. Offline tap practice must work after caching; audio remains best effort.
+- [x] Test Pages base-path build and inspect generated asset references. Report physical-phone behavior separately if it cannot be observed. No physical guitar gate remains.
+- [x] Fix material findings, rerun affected checks, and obtain independent readback before reporting completion.
 
 ## Verification and safety
 
@@ -130,3 +130,7 @@ Only root integrates. Use reviewable commits and retain provenance before cleanu
 Both features work through tap answers without an instrument. Progress remains compatible, all required tests pass, independent review has no unresolved material findings, and no required changes remain only in worker checkouts. Report integration branch/SHA, worker commits, checks, UI evidence, primary-checkout state, and unverified physical-phone limits. Build success does not prove deployment; publication is outside scope.
 
 Immediate execution: finish A/B fixes and scope cleanup, connect the two modes, then run integrated verification. The guitar worker stays stopped and excluded. No user checkpoint is needed between these authorized steps.
+
+## Release authorization
+
+The user authorized committing, merging, and deploying after verification. Final local checks passed 66 unit tests and 74 browser tests; independent review approved the final corrections. Deploy through the existing main-branch Pages workflow and verify its exact SHA and live assets.
